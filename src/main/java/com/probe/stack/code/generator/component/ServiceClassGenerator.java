@@ -1,0 +1,953 @@
+package com.probe.stack.code.generator.component;
+
+import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ControllerMetadata;
+import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.MethodMetadata;
+import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ParameterMetadata;
+import com.squareup.javapoet.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import javax.lang.model.element.Modifier;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+
+/**
+ * Generates Spring Boot service classes with working MongoDB repository implementations.
+ * Handles Request/Response DTO mapping and all CRUD operations.
+ *
+ * @author ProbeStack
+ */
+@Slf4j
+@Component
+public class ServiceClassGenerator {
+
+    /**
+     * Generates a service class for the given controller metadata.
+     *
+     * @param metadata controller metadata
+     * @param outputDir output directory for generated files
+     * @throws IOException if file writing fails
+     */
+    public void generateServiceClass(ControllerMetadata metadata, File outputDir) throws IOException {
+        String serviceName = generateServiceName(metadata.getClassName());
+
+        // Validate and normalize package name
+        String basePackage = normalizePackageName(metadata.getPackageName());
+        String servicePackage = calculateServicePackage(basePackage);
+        String repositoryPackage = calculateRepositoryPackage(basePackage);
+        String modelPackage = calculateModelPackage(basePackage);
+
+        log.info("Generating service class:");
+        log.info("  Service: {}", serviceName);
+        log.info("  Base Package: {}", basePackage);
+        log.info("  Service Package: {}", servicePackage);
+        log.info("  Repository Package: {}", repositoryPackage);
+        log.info("  Model Package: {}", modelPackage);
+
+        String entityClass = metadata.getEntityClass();
+
+        // Validate entity class
+        if (entityClass == null || entityClass.isEmpty() || entityClass.equals("null")) {
+            throw new IllegalArgumentException(
+                    "Cannot generate service: Entity class not found for controller: " + metadata.getClassName()
+            );
+        }
+
+        // Build repository field
+        String repositoryName = entityClass + "Repository";
+        String repositoryFieldName = toCamelCase(repositoryName);
+
+        ClassName repositoryClass = ClassName.get(repositoryPackage, repositoryName);
+        ClassName entityClassName = ClassName.get(modelPackage, entityClass);
+
+        FieldSpec repositoryField = FieldSpec.builder(
+                repositoryClass,
+                repositoryFieldName,
+                Modifier.PRIVATE, Modifier.FINAL
+        ).build();
+
+        // Build constructor
+        MethodSpec constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(repositoryClass, repositoryFieldName)
+                .addStatement("this.$N = $N", repositoryFieldName, repositoryFieldName)
+                .build();
+
+        // Type resolver for proper imports
+        TypeResolver typeResolver = new TypeResolver(basePackage, modelPackage);
+
+        // Generate service methods with implementations
+        List<MethodSpec> serviceMethods = new ArrayList<>();
+        for (MethodMetadata method : metadata.getMethods()) {
+            try {
+                MethodSpec serviceMethod = generateServiceMethod(
+                        method,
+                        entityClass,
+                        entityClassName,
+                        typeResolver,
+                        repositoryFieldName
+                );
+                serviceMethods.add(serviceMethod);
+                log.debug("Generated method: {}", serviceMethod.name);
+            } catch (Exception e) {
+                log.warn("Failed to generate method {}: {}", method.getMethodName(), e.getMessage());
+            }
+        }
+
+        // Only generate if we have methods
+        if (serviceMethods.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No API methods found in controller: " + metadata.getClassName()
+            );
+        }
+
+        // Generate mapper methods for Request/Response conversion
+        List<MethodSpec> mapperMethods = generateMapperMethods(metadata, entityClassName, typeResolver, modelPackage);
+
+        // Build service class
+        TypeSpec.Builder serviceClassBuilder = TypeSpec.classBuilder(serviceName)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Service.class)
+                .addJavadoc("Service layer for $L operations.\n", entityClass)
+                .addJavadoc("\n<p>This service uses MongoDB repository for data persistence.</p>\n")
+                .addJavadoc("\n@author Generated by ProbeStack CodeGen")
+                .addField(repositoryField)
+                .addMethod(constructor)
+                .addMethods(serviceMethods);
+
+        // Add mapper methods if any
+        if (!mapperMethods.isEmpty()) {
+            serviceClassBuilder.addJavadoc("\n<p>Note: Mapper methods use BeanUtils.copyProperties() for automatic field mapping.</p>\n");
+            serviceClassBuilder.addMethods(mapperMethods);
+        }
+
+        TypeSpec serviceClass = serviceClassBuilder.build();
+
+        // Write to file
+        JavaFile javaFile = JavaFile.builder(servicePackage, serviceClass)
+                .indent("    ")
+                .build();
+
+        javaFile.writeTo(outputDir);
+
+        log.info("Successfully generated service: {} with {} methods and {} mappers",
+                serviceName, serviceMethods.size(), mapperMethods.size());
+    }
+
+    /**
+     * Normalizes package name by removing any incorrect prefixes.
+     */
+    private String normalizePackageName(String packageName) {
+        if (packageName == null || packageName.isEmpty()) {
+            throw new IllegalArgumentException("Package name cannot be null or empty");
+        }
+
+        // Remove common incorrect prefixes
+        packageName = packageName.replaceFirst("^(service|repository|model|controller|api)\\.", "");
+
+        log.debug("Normalized package: {}", packageName);
+        return packageName;
+    }
+
+    /**
+     * Calculates service package from base package.
+     */
+    private String calculateServicePackage(String basePackage) {
+        // Remove .api suffix if present
+        String cleanPackage = basePackage.replaceAll("\\.api$", "");
+        return cleanPackage + ".service";
+    }
+
+    /**
+     * Calculates repository package from base package.
+     */
+    private String calculateRepositoryPackage(String basePackage) {
+        String cleanPackage = basePackage.replaceAll("\\.api$", "");
+        return cleanPackage + ".repository";
+    }
+
+    /**
+     * Calculates model package from base package.
+     */
+    private String calculateModelPackage(String basePackage) {
+        String cleanPackage = basePackage.replaceAll("\\.api$", "");
+        return cleanPackage + ".model";
+    }
+
+    /**
+     * Generates a service method with working implementation.
+     */
+    private MethodSpec generateServiceMethod(
+            MethodMetadata method,
+            String entityClass,
+            ClassName entityClassName,
+            TypeResolver typeResolver,
+            String repositoryFieldName
+    ) {
+        // Resolve return type
+        TypeName returnType = typeResolver.resolveType(method.getReturnType());
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.getMethodName())
+                .addModifiers(Modifier.PUBLIC)
+                .returns(returnType);
+
+        // Add parameters with proper type resolution
+        for (ParameterMetadata param : method.getParameters()) {
+            TypeName paramType = typeResolver.resolveType(param.getType());
+            methodBuilder.addParameter(paramType, param.getName());
+        }
+
+        // Determine operation type and generate implementation
+        OperationType operationType = determineOperationType(method);
+
+        generateMethodImplementation(
+                methodBuilder,
+                operationType,
+                method,
+                entityClass,
+                entityClassName,
+                repositoryFieldName,
+                typeResolver
+        );
+
+        return methodBuilder.build();
+    }
+
+    /**
+     * Determines the type of operation based on method name and parameters.
+     */
+    private OperationType determineOperationType(MethodMetadata method) {
+        String methodName = method.getMethodName().toLowerCase();
+
+        if (methodName.contains("create") || methodName.contains("add") ||
+                methodName.contains("save") || methodName.contains("register") ||
+                methodName.contains("insert") || methodName.contains("post")) {
+            return OperationType.CREATE;
+        }
+
+        if (methodName.contains("update") || methodName.contains("modify") ||
+                methodName.contains("edit") || methodName.contains("put") ||
+                methodName.contains("patch")) {
+            return OperationType.UPDATE;
+        }
+
+        if (methodName.contains("delete") || methodName.contains("remove")) {
+            return OperationType.DELETE;
+        }
+
+        if (methodName.contains("get") || methodName.contains("find") ||
+                methodName.contains("retrieve") || methodName.contains("search") ||
+                methodName.contains("list") || methodName.contains("fetch") ||
+                methodName.contains("read")) {
+
+            if (methodName.contains("all") || methodName.contains("list") ||
+                    method.getReturnType().contains("List")) {
+                return OperationType.READ_ALL;
+            } else if (hasIdParameter(method)) {
+                return OperationType.READ_BY_ID;
+            } else {
+                return OperationType.READ_ALL;
+            }
+        }
+
+        return OperationType.UNKNOWN;
+    }
+
+    /**
+     * Checks if method has an ID parameter.
+     */
+    private boolean hasIdParameter(MethodMetadata method) {
+        for (ParameterMetadata param : method.getParameters()) {
+            String paramName = param.getName().toLowerCase();
+
+            if (paramName.equals("id") || paramName.endsWith("id") ||
+                    param.isPathVariable()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Generates the method implementation based on operation type.
+     */
+    private void generateMethodImplementation(
+            MethodSpec.Builder methodBuilder,
+            OperationType operationType,
+            MethodMetadata method,
+            String entityClass,
+            ClassName entityClassName,
+            String repositoryFieldName,
+            TypeResolver typeResolver
+    ) {
+        String returnTypeStr = method.getReturnType();
+        boolean isResponseEntity = returnTypeStr.contains("ResponseEntity");
+        boolean isOptional = returnTypeStr.contains("Optional");
+        boolean isVoid = isVoidReturnType(returnTypeStr);
+
+        switch (operationType) {
+            case CREATE:
+                generateCreateImplementation(methodBuilder, method, entityClass, repositoryFieldName,
+                        isResponseEntity, entityClassName);
+                break;
+            case UPDATE:
+                generateUpdateImplementation(methodBuilder, method, entityClass, repositoryFieldName,
+                        isResponseEntity, entityClassName);
+                break;
+            case DELETE:
+                generateDeleteImplementation(methodBuilder, method, entityClass, repositoryFieldName,
+                        isResponseEntity, isVoid);
+                break;
+            case READ_BY_ID:
+                generateReadByIdImplementation(methodBuilder, method, entityClass, repositoryFieldName,
+                        isResponseEntity, isOptional, entityClassName);
+                break;
+            case READ_ALL:
+                generateReadAllImplementation(methodBuilder, method, entityClass, repositoryFieldName,
+                        isResponseEntity, entityClassName);
+                break;
+            default:
+                generateUnknownImplementation(methodBuilder, entityClass, isVoid);
+                break;
+        }
+    }
+
+    /**
+     * Generates CREATE operation implementation with Request/Response mapping support.
+     */
+    private void generateCreateImplementation(
+            MethodSpec.Builder methodBuilder,
+            MethodMetadata method,
+            String entityClass,
+            String repositoryFieldName,
+            boolean isResponseEntity,
+            ClassName entityClassName
+    ) {
+        String entityParamName = findEntityParameter(method, entityClass);
+
+        if (entityParamName != null) {
+            methodBuilder.addComment("Save the entity to database");
+            methodBuilder.addStatement("$L saved$L = $L.save($L)",
+                    entityClass, entityClass, repositoryFieldName, entityParamName);
+
+            String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+            boolean needsMapping = !returnTypeGeneric.equals(entityClass) &&
+                    !returnTypeGeneric.equals("Void") &&
+                    !returnTypeGeneric.isEmpty();
+
+            if (needsMapping) {
+                String mapperMethodName = "mapTo" + returnTypeGeneric;
+                methodBuilder.addComment("Map entity to response DTO");
+                methodBuilder.addStatement("$L response = $L(saved$L)",
+                        returnTypeGeneric,
+                        mapperMethodName,
+                        entityClass);
+
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.status($T.CREATED).body(response)",
+                            ClassName.get("org.springframework.http", "ResponseEntity"),
+                            ClassName.get("org.springframework.http", "HttpStatus"));
+                } else {
+                    methodBuilder.addStatement("return response");
+                }
+            } else {
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.status($T.CREATED).body(saved$L)",
+                            ClassName.get("org.springframework.http", "ResponseEntity"),
+                            ClassName.get("org.springframework.http", "HttpStatus"),
+                            entityClass);
+                } else {
+                    methodBuilder.addStatement("return saved$L", entityClass);
+                }
+            }
+        } else {
+            generateUnknownImplementation(methodBuilder, entityClass, false);
+        }
+    }
+
+    /**
+     * Generates UPDATE operation implementation.
+     */
+    private void generateUpdateImplementation(
+            MethodSpec.Builder methodBuilder,
+            MethodMetadata method,
+            String entityClass,
+            String repositoryFieldName,
+            boolean isResponseEntity,
+            ClassName entityClassName
+    ) {
+        String entityParamName = findEntityParameter(method, entityClass);
+        String idParamName = findIdParameter(method);
+
+        if (entityParamName != null) {
+            methodBuilder.addComment("Update entity in database");
+
+            if (idParamName != null) {
+                methodBuilder.addComment("Verify entity exists before updating");
+                methodBuilder.beginControlFlow("if (!$L.existsById($L))", repositoryFieldName, idParamName);
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.notFound().build()",
+                            ClassName.get("org.springframework.http", "ResponseEntity"));
+                } else {
+                    methodBuilder.addStatement("return null");
+                }
+                methodBuilder.endControlFlow();
+            }
+
+            methodBuilder.addStatement("$L updated$L = $L.save($L)",
+                    entityClass, entityClass, repositoryFieldName, entityParamName);
+
+            String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+            boolean needsMapping = !returnTypeGeneric.equals(entityClass) &&
+                    !returnTypeGeneric.equals("Void") &&
+                    !returnTypeGeneric.isEmpty();
+
+            if (needsMapping) {
+                String mapperMethodName = "mapTo" + returnTypeGeneric;
+                methodBuilder.addComment("Map entity to response DTO");
+                methodBuilder.addStatement("$L response = $L(updated$L)",
+                        returnTypeGeneric,
+                        mapperMethodName,
+                        entityClass);
+
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.ok(response)",
+                            ClassName.get("org.springframework.http", "ResponseEntity"));
+                } else {
+                    methodBuilder.addStatement("return response");
+                }
+            } else {
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.ok(updated$L)",
+                            ClassName.get("org.springframework.http", "ResponseEntity"),
+                            entityClass);
+                } else {
+                    methodBuilder.addStatement("return updated$L", entityClass);
+                }
+            }
+        } else {
+            generateUnknownImplementation(methodBuilder, entityClass, false);
+        }
+    }
+
+    /**
+     * Generates DELETE operation implementation.
+     */
+    private void generateDeleteImplementation(
+            MethodSpec.Builder methodBuilder,
+            MethodMetadata method,
+            String entityClass,
+            String repositoryFieldName,
+            boolean isResponseEntity,
+            boolean isVoid
+    ) {
+        String idParamName = findIdParameter(method);
+
+        if (idParamName != null) {
+            methodBuilder.addComment("Delete entity from database");
+            methodBuilder.beginControlFlow("if (!$L.existsById($L))", repositoryFieldName, idParamName);
+
+            if (isResponseEntity) {
+                methodBuilder.addStatement("return $T.notFound().build()",
+                        ClassName.get("org.springframework.http", "ResponseEntity"));
+            } else if (!isVoid) {
+                methodBuilder.addStatement("return null");
+            }
+            methodBuilder.endControlFlow();
+
+            methodBuilder.addStatement("$L.deleteById($L)", repositoryFieldName, idParamName);
+
+            if (isResponseEntity) {
+                methodBuilder.addStatement("return $T.noContent().build()",
+                        ClassName.get("org.springframework.http", "ResponseEntity"));
+            } else if (!isVoid) {
+                methodBuilder.addStatement("return null");
+            }
+        } else {
+            generateUnknownImplementation(methodBuilder, entityClass, isVoid);
+        }
+    }
+
+    /**
+     * Generates READ BY ID operation implementation.
+     */
+    private void generateReadByIdImplementation(
+            MethodSpec.Builder methodBuilder,
+            MethodMetadata method,
+            String entityClass,
+            String repositoryFieldName,
+            boolean isResponseEntity,
+            boolean isOptional,
+            ClassName entityClassName
+    ) {
+        String idParamName = findIdParameter(method);
+
+        if (idParamName != null) {
+            methodBuilder.addComment("Retrieve entity by ID from database");
+            methodBuilder.addStatement("$T<$T> entity = $L.findById($L)",
+                    ClassName.get("java.util", "Optional"),
+                    entityClassName,
+                    repositoryFieldName,
+                    idParamName);
+
+            String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+            boolean needsMapping = !returnTypeGeneric.equals(entityClass) &&
+                    !returnTypeGeneric.equals("Void") &&
+                    !returnTypeGeneric.isEmpty();
+
+            if (needsMapping) {
+                String mapperMethodName = "mapTo" + returnTypeGeneric;
+
+                if (isResponseEntity) {
+                    methodBuilder.addComment("Map entity to response DTO");
+                    methodBuilder.addStatement("return entity.map(this::$L).map($T::ok).orElse($T.notFound().build())",
+                            mapperMethodName,
+                            ClassName.get("org.springframework.http", "ResponseEntity"),
+                            ClassName.get("org.springframework.http", "ResponseEntity"));
+                } else if (isOptional) {
+                    methodBuilder.addStatement("return entity.map(this::$L)", mapperMethodName);
+                } else {
+                    methodBuilder.addStatement("return entity.map(this::$L).orElse(null)", mapperMethodName);
+                }
+            } else {
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return entity.map($T::ok).orElse($T.notFound().build())",
+                            ClassName.get("org.springframework.http", "ResponseEntity"),
+                            ClassName.get("org.springframework.http", "ResponseEntity"));
+                } else if (isOptional) {
+                    methodBuilder.addStatement("return entity");
+                } else {
+                    methodBuilder.addStatement("return entity.orElse(null)");
+                }
+            }
+        } else {
+            generateUnknownImplementation(methodBuilder, entityClass, false);
+        }
+    }
+
+    /**
+     * Generates READ ALL operation implementation.
+     */
+    private void generateReadAllImplementation(
+            MethodSpec.Builder methodBuilder,
+            MethodMetadata method,
+            String entityClass,
+            String repositoryFieldName,
+            boolean isResponseEntity,
+            ClassName entityClassName
+    ) {
+        methodBuilder.addComment("Retrieve all entities from database");
+        methodBuilder.addStatement("$T<$T> entities = $L.findAll()",
+                ClassName.get("java.util", "List"),
+                entityClassName,
+                repositoryFieldName);
+
+        String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+        boolean needsMapping = !returnTypeGeneric.equals(entityClass) &&
+                !returnTypeGeneric.equals("Void") &&
+                !returnTypeGeneric.isEmpty() &&
+                !returnTypeGeneric.startsWith("List");
+
+        if (needsMapping) {
+            String mapperMethodName = "mapTo" + returnTypeGeneric;
+            methodBuilder.addComment("Map entities to response DTOs");
+            methodBuilder.addStatement("$T<$L> responses = entities.stream().map(this::$L).collect($T.toList())",
+                    ClassName.get("java.util", "List"),
+                    returnTypeGeneric,
+                    mapperMethodName,
+                    ClassName.get("java.util.stream", "Collectors"));
+
+            if (isResponseEntity) {
+                methodBuilder.addStatement("return $T.ok(responses)",
+                        ClassName.get("org.springframework.http", "ResponseEntity"));
+            } else {
+                methodBuilder.addStatement("return responses");
+            }
+        } else {
+            if (isResponseEntity) {
+                methodBuilder.addStatement("return $T.ok(entities)",
+                        ClassName.get("org.springframework.http", "ResponseEntity"));
+            } else {
+                methodBuilder.addStatement("return entities");
+            }
+        }
+    }
+
+    /**
+     * Generates implementation for unknown operations.
+     */
+    private void generateUnknownImplementation(
+            MethodSpec.Builder methodBuilder,
+            String entityClass,
+            boolean isVoid
+    ) {
+        methodBuilder.addComment("TODO: Implement custom business logic");
+        methodBuilder.addComment("Available repository methods:");
+        methodBuilder.addComment("  - save(entity) - Create or update");
+        methodBuilder.addComment("  - findById(id) - Find by ID");
+        methodBuilder.addComment("  - findAll() - Get all entities");
+        methodBuilder.addComment("  - existsById(id) - Check if exists");
+        methodBuilder.addComment("  - deleteById(id) - Delete by ID");
+        methodBuilder.addComment("  - count() - Count all entities");
+
+        if (!isVoid) {
+            methodBuilder.addStatement("return null");
+        }
+    }
+
+    /**
+     * Generates mapper methods for Request/Response DTO conversion.
+     */
+    private List<MethodSpec> generateMapperMethods(
+            ControllerMetadata metadata,
+            ClassName entityClassName,
+            TypeResolver typeResolver,
+            String modelPackage
+    ) {
+        List<MethodSpec> mappers = new ArrayList<>();
+        Set<String> responseTypes = new HashSet<>();
+
+        for (MethodMetadata method : metadata.getMethods()) {
+            String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+
+            if (!returnTypeGeneric.equals(metadata.getEntityClass()) &&
+                    !returnTypeGeneric.equals("Void") &&
+                    !returnTypeGeneric.isEmpty() &&
+                    !returnTypeGeneric.startsWith("List") &&
+                    !isJavaLangType(returnTypeGeneric)) {
+                responseTypes.add(returnTypeGeneric);
+            }
+        }
+
+        for (String responseType : responseTypes) {
+            ClassName responseClassName = ClassName.get(modelPackage, responseType);
+
+            MethodSpec mapper = MethodSpec.methodBuilder("mapTo" + responseType)
+                    .addModifiers(Modifier.PRIVATE)
+                    .addParameter(entityClassName, "entity")
+                    .returns(responseClassName)
+                    .addJavadoc("Maps $L entity to $L response DTO.\n",
+                            metadata.getEntityClass(), responseType)
+                    .addJavadoc("\n<p>Uses Spring BeanUtils.copyProperties() to automatically copy matching fields.</p>\n")
+                    .addJavadoc("\n@param entity the entity to map\n")
+                    .addJavadoc("@return mapped response DTO\n")
+                    .addComment("Create new response object")
+                    .addStatement("$T response = new $T()", responseClassName, responseClassName)
+                    .addComment("Copy matching properties from entity to response")
+                    .addStatement("$T.copyProperties(entity, response)",
+                            ClassName.get("org.springframework.beans", "BeanUtils"))
+                    .addComment("")
+                    .addComment("TODO: Add custom field mappings here if needed")
+                    .addComment("Example:")
+                    .addComment("  response.setCustomField(entity.getSourceField());")
+                    .addComment("  response.setMessage(\"Success\");")
+                    .addComment("")
+                    .addStatement("return response")
+                    .build();
+
+            mappers.add(mapper);
+        }
+
+        return mappers;
+    }
+
+    /**
+     * Extracts generic type from return type (e.g., ResponseEntity<User> -> User).
+     */
+    private String extractGenericFromReturnType(String returnType) {
+        if (returnType.contains("<") && returnType.contains(">")) {
+            int start = returnType.indexOf('<') + 1;
+            int end = returnType.lastIndexOf('>');
+            String generic = returnType.substring(start, end).trim();
+
+            if (generic.startsWith("List<") || generic.startsWith("java.util.List<")) {
+                int innerStart = generic.indexOf('<') + 1;
+                int innerEnd = generic.lastIndexOf('>');
+                generic = generic.substring(innerStart, innerEnd).trim();
+            }
+
+            if (generic.contains(".")) {
+                generic = generic.substring(generic.lastIndexOf('.') + 1);
+            }
+
+            return generic;
+        }
+        return "";
+    }
+
+    /**
+     * Finds the entity parameter in the method parameters.
+     */
+    private String findEntityParameter(MethodMetadata method, String entityClass) {
+        for (ParameterMetadata param : method.getParameters()) {
+            if (param.getType().contains(entityClass) || param.isRequestBody()) {
+                return param.getName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the ID parameter in the method parameters.
+     */
+    private String findIdParameter(MethodMetadata method) {
+        for (ParameterMetadata param : method.getParameters()) {
+            String paramName = param.getName().toLowerCase();
+
+            if (paramName.equals("id") ||
+                    paramName.endsWith("id") ||
+                    param.isPathVariable()) {
+                return param.getName();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if return type is void.
+     */
+    private boolean isVoidReturnType(String returnType) {
+        return returnType != null && (returnType.equals("void") || returnType.equals("Void"));
+    }
+
+    /**
+     * Checks if a type is a Java language type.
+     */
+    private boolean isJavaLangType(String type) {
+        if (type == null) return true;
+
+        return type.equals("String") ||
+                type.equals("Integer") ||
+                type.equals("Long") ||
+                type.equals("Double") ||
+                type.equals("Boolean") ||
+                type.equals("Void") ||
+                type.equals("Object") ||
+                type.startsWith("java.");
+    }
+
+    /**
+     * Generates service class name from controller/API name.
+     * Handles both "Api" and "ApiController" suffixes correctly.
+     *
+     * Examples:
+     *   CompanyRegistrationApi -> CompanyRegistrationService
+     *   CompanyRegistrationApiController -> CompanyRegistrationService
+     *   UserApi -> UserService
+     *   UserApiController -> UserService
+     */
+    private String generateServiceName(String className) {
+        if (className == null || className.isEmpty()) {
+            throw new IllegalArgumentException("Class name cannot be null or empty");
+        }
+
+        // Remove "ApiController" suffix first (more specific)
+        if (className.endsWith("ApiController")) {
+            String baseName = className.substring(0, className.length() - "ApiController".length());
+            return baseName + "Service";
+        }
+
+        // Remove "Api" suffix
+        if (className.endsWith("Api")) {
+            String baseName = className.substring(0, className.length() - "Api".length());
+            return baseName + "Service";
+        }
+
+        // Remove "Controller" suffix
+        if (className.endsWith("Controller")) {
+            String baseName = className.substring(0, className.length() - "Controller".length());
+            return baseName + "Service";
+        }
+
+        // No known suffix, just append Service
+        return className + "Service";
+    }
+
+    /**
+     * Converts a string to camelCase.
+     */
+    private String toCamelCase(String input) {
+        if (input == null || input.isEmpty()) return input;
+        return Character.toLowerCase(input.charAt(0)) + input.substring(1);
+    }
+
+    /**
+     * Operation type enumeration.
+     */
+    private enum OperationType {
+        CREATE,
+        READ_BY_ID,
+        READ_ALL,
+        UPDATE,
+        DELETE,
+        UNKNOWN
+    }
+
+    /**
+     * Helper class to resolve types and their packages.
+     */
+    private static class TypeResolver {
+        private final String basePackage;
+        private final String modelPackage;
+        private final Map<String, String> knownPackages;
+
+        public TypeResolver(String basePackage, String modelPackage) {
+            this.basePackage = basePackage;
+            this.modelPackage = modelPackage;
+            this.knownPackages = initializeKnownPackages();
+        }
+
+        private Map<String, String> initializeKnownPackages() {
+            Map<String, String> packages = new HashMap<>();
+
+            // Spring Framework
+            packages.put("ResponseEntity", "org.springframework.http");
+            packages.put("HttpStatus", "org.springframework.http");
+            packages.put("HttpHeaders", "org.springframework.http");
+            packages.put("MediaType", "org.springframework.http");
+            packages.put("NativeWebRequest", "org.springframework.web.context.request");
+            packages.put("MultipartFile", "org.springframework.web.multipart");
+
+            // Java standard library
+            packages.put("Optional", "java.util");
+            packages.put("List", "java.util");
+            packages.put("Set", "java.util");
+            packages.put("Map", "java.util");
+            packages.put("Collection", "java.util");
+            packages.put("ArrayList", "java.util");
+            packages.put("HashMap", "java.util");
+            packages.put("HashSet", "java.util");
+
+            return packages;
+        }
+
+        public TypeName resolveType(String typeString) {
+            if (typeString == null || typeString.isEmpty()) {
+                return TypeName.OBJECT;
+            }
+
+            if (typeString.equals("void")) {
+                return TypeName.VOID;
+            }
+
+            TypeName primitive = resolvePrimitive(typeString);
+            if (primitive != null) {
+                return primitive;
+            }
+
+            if (typeString.contains("<")) {
+                return resolveParameterizedType(typeString);
+            }
+
+            if (typeString.endsWith("[]")) {
+                String baseType = typeString.substring(0, typeString.length() - 2);
+                return ArrayTypeName.of(resolveType(baseType));
+            }
+
+            return resolveSimpleType(typeString);
+        }
+
+        private TypeName resolvePrimitive(String typeString) {
+            switch (typeString) {
+                case "int": return TypeName.INT;
+                case "long": return TypeName.LONG;
+                case "double": return TypeName.DOUBLE;
+                case "float": return TypeName.FLOAT;
+                case "boolean": return TypeName.BOOLEAN;
+                case "byte": return TypeName.BYTE;
+                case "char": return TypeName.CHAR;
+                case "short": return TypeName.SHORT;
+                case "Integer": return TypeName.INT.box();
+                case "Long": return TypeName.LONG.box();
+                case "Double": return TypeName.DOUBLE.box();
+                case "Float": return TypeName.FLOAT.box();
+                case "Boolean": return TypeName.BOOLEAN.box();
+                case "Byte": return TypeName.BYTE.box();
+                case "Character": return TypeName.CHAR.box();
+                case "Short": return TypeName.SHORT.box();
+                default: return null;
+            }
+        }
+
+        private TypeName resolveParameterizedType(String typeString) {
+            int genericStart = typeString.indexOf('<');
+            int genericEnd = typeString.lastIndexOf('>');
+
+            if (genericStart == -1 || genericEnd == -1 || genericEnd <= genericStart) {
+                return resolveSimpleType(typeString);
+            }
+
+            String rawType = typeString.substring(0, genericStart).trim();
+            String genericArgs = typeString.substring(genericStart + 1, genericEnd).trim();
+
+            ClassName rawClassName = resolveClassName(rawType);
+
+            List<TypeName> typeArguments = new ArrayList<>();
+            String[] args = splitGenericArgs(genericArgs);
+            for (String arg : args) {
+                typeArguments.add(resolveType(arg.trim()));
+            }
+
+            return ParameterizedTypeName.get(rawClassName, typeArguments.toArray(new TypeName[0]));
+        }
+
+        private String[] splitGenericArgs(String genericArgs) {
+            List<String> args = new ArrayList<>();
+            int depth = 0;
+            StringBuilder current = new StringBuilder();
+
+            for (char c : genericArgs.toCharArray()) {
+                if (c == '<') {
+                    depth++;
+                    current.append(c);
+                } else if (c == '>') {
+                    depth--;
+                    current.append(c);
+                } else if (c == ',' && depth == 0) {
+                    args.add(current.toString());
+                    current = new StringBuilder();
+                } else {
+                    current.append(c);
+                }
+            }
+
+            if (current.length() > 0) {
+                args.add(current.toString());
+            }
+
+            return args.toArray(new String[0]);
+        }
+
+        private TypeName resolveSimpleType(String typeString) {
+            String cleanType = typeString.replaceAll("<.*>", "").trim();
+
+            if (cleanType.contains(".")) {
+                return ClassName.bestGuess(cleanType);
+            }
+
+            return resolveClassName(cleanType);
+        }
+
+        private ClassName resolveClassName(String simpleClassName) {
+            if (knownPackages.containsKey(simpleClassName)) {
+                return ClassName.get(knownPackages.get(simpleClassName), simpleClassName);
+            }
+
+            if (isJavaLangType(simpleClassName)) {
+                return ClassName.get("java.lang", simpleClassName);
+            }
+
+            return ClassName.get(modelPackage, simpleClassName);
+        }
+
+        private boolean isJavaLangType(String simpleClassName) {
+            return simpleClassName.equals("String") ||
+                    simpleClassName.equals("Object") ||
+                    simpleClassName.equals("Class") ||
+                    simpleClassName.equals("Exception") ||
+                    simpleClassName.equals("Throwable");
+        }
+    }
+}
