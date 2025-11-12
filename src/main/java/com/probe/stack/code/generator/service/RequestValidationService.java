@@ -2,15 +2,17 @@ package com.probe.stack.code.generator.service;
 
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
  * Service for validating code generation requests
  */
-@Slf4j
 @Service
 public class RequestValidationService {
+
+    private static final Logger log = LoggerFactory.getLogger(RequestValidationService.class);
     
     /**
      * Validates that the request has either URL or content

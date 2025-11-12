@@ -5,9 +5,10 @@ import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.dto.CodeGenerationResponse;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import com.probe.stack.code.generator.util.AppConstants;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.URIish;
@@ -24,12 +25,17 @@ import java.nio.file.Path;
 /**
  * Service for GitHub operations - repository creation and code push
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class GitHubService {
 
+    private static final Logger log = LoggerFactory.getLogger(GitHubService.class);
+
     private final GitHubConfig githubPropertiesConfig;
+
+    @Autowired
+    public GitHubService(GitHubConfig githubPropertiesConfig) {
+        this.githubPropertiesConfig = githubPropertiesConfig;
+    }
 
     /**
      * Creates a GitHub repository and pushes the generated code

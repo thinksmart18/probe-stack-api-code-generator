@@ -2,19 +2,11 @@ package com.probe.stack.code.generator.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * Request DTO for code generation from OpenAPI specification
  * Supports three input methods: URL, raw content, or file upload
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class CodeGenerationRequest {
 
     /**
@@ -67,13 +59,11 @@ public class CodeGenerationRequest {
     /**
      * Project version (defaults to 1.0.0)
      */
-    @Builder.Default
     private String version = "1.0.0";
 
     /**
      * Whether to return as ZIP archive
      */
-    @Builder.Default
     private boolean returnAsArchive = false;
 
     /**
@@ -89,7 +79,6 @@ public class CodeGenerationRequest {
     /**
      * Initial branch name (defaults to main)
      */
-    @Builder.Default
     private String branchName = "main";
 
     /**
@@ -97,19 +86,143 @@ public class CodeGenerationRequest {
      */
     private String repositoryName;
 
+    // Constructors
+    public CodeGenerationRequest() {
+    }
+
+    public CodeGenerationRequest(String openApiSpecUrl, String specContent, String specContentType,
+                                  String groupName, String artifactId, String basePackage,
+                                  String githubToken, String version, boolean returnAsArchive,
+                                  GitHubConfig gitHubConfig, String organization, String branchName,
+                                  String repositoryName) {
+        this.openApiSpecUrl = openApiSpecUrl;
+        this.specContent = specContent;
+        this.specContentType = specContentType;
+        this.groupName = groupName;
+        this.artifactId = artifactId;
+        this.basePackage = basePackage;
+        this.githubToken = githubToken;
+        this.version = version;
+        this.returnAsArchive = returnAsArchive;
+        this.gitHubConfig = gitHubConfig;
+        this.organization = organization;
+        this.branchName = branchName;
+        this.repositoryName = repositoryName;
+    }
+
+    // Getters and Setters
+    public String getOpenApiSpecUrl() {
+        return openApiSpecUrl;
+    }
+
+    public void setOpenApiSpecUrl(String openApiSpecUrl) {
+        this.openApiSpecUrl = openApiSpecUrl;
+    }
+
+    public String getSpecContent() {
+        return specContent;
+    }
+
+    public void setSpecContent(String specContent) {
+        this.specContent = specContent;
+    }
+
+    public String getSpecContentType() {
+        return specContentType;
+    }
+
+    public void setSpecContentType(String specContentType) {
+        this.specContentType = specContentType;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public String getArtifactId() {
+        return artifactId;
+    }
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    public String getBasePackage() {
+        return basePackage;
+    }
+
+    public void setBasePackage(String basePackage) {
+        this.basePackage = basePackage;
+    }
+
+    public String getGithubToken() {
+        return githubToken;
+    }
+
+    public void setGithubToken(String githubToken) {
+        this.githubToken = githubToken;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public boolean isReturnAsArchive() {
+        return returnAsArchive;
+    }
+
+    public void setReturnAsArchive(boolean returnAsArchive) {
+        this.returnAsArchive = returnAsArchive;
+    }
+
+    public GitHubConfig getGitHubConfig() {
+        return gitHubConfig;
+    }
+
+    public void setGitHubConfig(GitHubConfig gitHubConfig) {
+        this.gitHubConfig = gitHubConfig;
+    }
+
+    public String getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(String organization) {
+        this.organization = organization;
+    }
+
+    public String getBranchName() {
+        return branchName;
+    }
+
+    public void setBranchName(String branchName) {
+        this.branchName = branchName;
+    }
+
+    public String getRepositoryName() {
+        return repositoryName;
+    }
+
+    public void setRepositoryName(String repositoryName) {
+        this.repositoryName = repositoryName;
+    }
+
     /**
      * GitHub repository configuration
      */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class GitHubConfig {
 
         /**
          * Whether to create and push to GitHub repository
          */
-        @Builder.Default
         private boolean enabled = false;
 
         /**
@@ -120,21 +233,70 @@ public class CodeGenerationRequest {
         /**
          * Whether repository should be private
          */
-        @Builder.Default
         private boolean isPrivate = true;
-
-
 
         /**
          * Commit message for initial commit
          */
-        @Builder.Default
         private String commitMessage = "Initial commit - Generated from OpenAPI specification";
 
         /**
          * Whether to initialize with README
          */
-        @Builder.Default
         private boolean autoInit = false;
+
+        // Constructors
+        public GitHubConfig() {
+        }
+
+        public GitHubConfig(boolean enabled, String description, boolean isPrivate,
+                            String commitMessage, boolean autoInit) {
+            this.enabled = enabled;
+            this.description = description;
+            this.isPrivate = isPrivate;
+            this.commitMessage = commitMessage;
+            this.autoInit = autoInit;
+        }
+
+        // Getters and Setters
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public boolean isPrivate() {
+            return isPrivate;
+        }
+
+        public void setPrivate(boolean isPrivate) {
+            this.isPrivate = isPrivate;
+        }
+
+        public String getCommitMessage() {
+            return commitMessage;
+        }
+
+        public void setCommitMessage(String commitMessage) {
+            this.commitMessage = commitMessage;
+        }
+
+        public boolean isAutoInit() {
+            return autoInit;
+        }
+
+        public void setAutoInit(boolean autoInit) {
+            this.autoInit = autoInit;
+        }
     }
 }

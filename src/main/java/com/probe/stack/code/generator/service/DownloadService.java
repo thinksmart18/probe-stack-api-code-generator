@@ -1,8 +1,8 @@
 package com.probe.stack.code.generator.service;
 
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -16,11 +16,10 @@ import java.util.Optional;
 /**
  * Service for handling file download operations
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class DownloadService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(DownloadService.class);
     private static final String GENERATED_PROJECTS_DIR = "./generated-projects";
     
     /**

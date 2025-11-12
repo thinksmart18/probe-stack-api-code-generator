@@ -2,9 +2,10 @@ package com.probe.stack.code.generator.service;
 
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.springframework.stereotype.Service;
@@ -25,12 +26,17 @@ import java.util.Properties;
  * - maven_config/plugins.xml
  * - maven_config/properties.xml
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class PomCustomizationService {
 
+    private static final Logger log = LoggerFactory.getLogger(PomCustomizationService.class);
+
     private final CodeGeneratorConfig config;
+
+    @Autowired
+    public PomCustomizationService(CodeGeneratorConfig config) {
+        this.config = config;
+    }
 
     /**
      * Merges custom POM additions from template directory

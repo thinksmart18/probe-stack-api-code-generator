@@ -3,8 +3,9 @@ package com.probe.stack.code.generator.service;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,12 +15,17 @@ import java.nio.charset.StandardCharsets;
 /**
  * Service for handling multipart file upload requests
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MultipartRequestService {
 
+    private static final Logger log = LoggerFactory.getLogger(MultipartRequestService.class);
+
     private final ObjectMapper objectMapper;
+
+    @Autowired
+    public MultipartRequestService(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * Processes multipart request with file upload

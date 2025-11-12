@@ -3,9 +3,10 @@ package com.probe.stack.code.generator.service;
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.openapitools.codegen.ClientOptInput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.springframework.stereotype.Service;
@@ -16,12 +17,17 @@ import java.util.List;
 /**
  * Service for generating Spring Boot code using OpenAPI Generator
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class OpenApiGeneratorService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(OpenApiGeneratorService.class);
+
     private final CodeGeneratorConfig config;
+
+    @Autowired
+    public OpenApiGeneratorService(CodeGeneratorConfig config) {
+        this.config = config;
+    }
     
     /**
      * Generates Spring Boot project from OpenAPI specification

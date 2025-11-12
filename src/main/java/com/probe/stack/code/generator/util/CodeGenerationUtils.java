@@ -1,19 +1,24 @@
 package com.probe.stack.code.generator.util;
 
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
 /**
  * Utility class for code generation operations
  */
-@Slf4j
-@UtilityClass
 public class CodeGenerationUtils {
-    
-    private static final Pattern PACKAGE_PATTERN = 
+
+    private static final Logger log = LoggerFactory.getLogger(CodeGenerationUtils.class);
+
+    private static final Pattern PACKAGE_PATTERN =
         Pattern.compile("^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$");
+
+    // Private constructor to prevent instantiation
+    private CodeGenerationUtils() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
     
     private static final Pattern ARTIFACT_PATTERN = 
         Pattern.compile("^[a-z][a-z0-9-]*$");

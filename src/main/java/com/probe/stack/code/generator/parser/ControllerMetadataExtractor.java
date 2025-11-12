@@ -8,8 +8,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -22,10 +22,10 @@ import java.util.*;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
 public class ControllerMetadataExtractor {
 
+    private static final Logger log = LoggerFactory.getLogger(ControllerMetadataExtractor.class);
     private final JavaParser javaParser = new JavaParser();
 
     public ControllerMetadata extractMetadata(File controllerFile) throws Exception {
@@ -383,7 +383,6 @@ public class ControllerMetadataExtractor {
                 simpleType.startsWith("java.");
     }
 
-    @Data
     public static class ControllerMetadata {
         private String packageName;
         private String className;
@@ -391,21 +390,131 @@ public class ControllerMetadataExtractor {
         private String entityClass;
         private List<MethodMetadata> methods;
         private Map<String, String> importMap;
+
+        public String getPackageName() {
+            return packageName;
+        }
+
+        public void setPackageName(String packageName) {
+            this.packageName = packageName;
+        }
+
+        public String getClassName() {
+            return className;
+        }
+
+        public void setClassName(String className) {
+            this.className = className;
+        }
+
+        public boolean isInterface() {
+            return isInterface;
+        }
+
+        public void setInterface(boolean isInterface) {
+            this.isInterface = isInterface;
+        }
+
+        public String getEntityClass() {
+            return entityClass;
+        }
+
+        public void setEntityClass(String entityClass) {
+            this.entityClass = entityClass;
+        }
+
+        public List<MethodMetadata> getMethods() {
+            return methods;
+        }
+
+        public void setMethods(List<MethodMetadata> methods) {
+            this.methods = methods;
+        }
+
+        public Map<String, String> getImportMap() {
+            return importMap;
+        }
+
+        public void setImportMap(Map<String, String> importMap) {
+            this.importMap = importMap;
+        }
     }
 
-    @Data
     public static class MethodMetadata {
         private String methodName;
         private String returnType;
         private List<ParameterMetadata> parameters;
+
+        public String getMethodName() {
+            return methodName;
+        }
+
+        public void setMethodName(String methodName) {
+            this.methodName = methodName;
+        }
+
+        public String getReturnType() {
+            return returnType;
+        }
+
+        public void setReturnType(String returnType) {
+            this.returnType = returnType;
+        }
+
+        public List<ParameterMetadata> getParameters() {
+            return parameters;
+        }
+
+        public void setParameters(List<ParameterMetadata> parameters) {
+            this.parameters = parameters;
+        }
     }
 
-    @Data
     public static class ParameterMetadata {
         private String name;
         private String type;
         private boolean isRequestBody;
         private boolean isPathVariable;
         private boolean isRequestParam;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public boolean isRequestBody() {
+            return isRequestBody;
+        }
+
+        public void setRequestBody(boolean requestBody) {
+            isRequestBody = requestBody;
+        }
+
+        public boolean isPathVariable() {
+            return isPathVariable;
+        }
+
+        public void setPathVariable(boolean pathVariable) {
+            isPathVariable = pathVariable;
+        }
+
+        public boolean isRequestParam() {
+            return isRequestParam;
+        }
+
+        public void setRequestParam(boolean requestParam) {
+            isRequestParam = requestParam;
+        }
     }
 }

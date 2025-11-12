@@ -2,8 +2,9 @@ package com.probe.stack.code.generator.service;
 
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -15,12 +16,17 @@ import java.util.Properties;
 /**
  * Service for merging application properties files
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class PropertiesMergeService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(PropertiesMergeService.class);
+
     private final CodeGeneratorConfig config;
+
+    @Autowired
+    public PropertiesMergeService(CodeGeneratorConfig config) {
+        this.config = config;
+    }
     
     /**
      * Merges additional properties into application.properties

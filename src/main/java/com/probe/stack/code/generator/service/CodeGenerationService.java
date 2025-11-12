@@ -9,8 +9,9 @@ import com.probe.stack.code.generator.exception.CodeGenerationException;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor;
 import com.probe.stack.code.generator.util.AppConstants;
 import com.probe.stack.code.generator.util.ControllerPathScanner;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -26,10 +27,10 @@ import java.util.UUID;
 /**
  * Main service orchestrating the code generation process
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class CodeGenerationService {
+
+    private static final Logger log = LoggerFactory.getLogger(CodeGenerationService.class);
 
     private final CodeGeneratorConfig config;
     private final SpecificationDownloadService specDownloadService;
@@ -46,6 +47,39 @@ public class CodeGenerationService {
     private final CodeGenerationOrchestrator codeGenerationOrchestrator;
     private final ControllerPathScanner controllerPathScanner;
     private final ControllerMetadataExtractor controllerMetadataExtractor;
+
+    @Autowired
+    public CodeGenerationService(CodeGeneratorConfig config,
+                                 SpecificationDownloadService specDownloadService,
+                                 OpenApiGeneratorService generatorService,
+                                 FileOperationsService fileOpsService,
+                                 TemplateProcessingService templateService,
+                                 PomMergeService pomMergeService,
+                                 PomCustomizationService pomCustomizationService,
+                                 PropertiesMergeService propertiesMergeService,
+                                 GitHubService gitHubService,
+                                 TemplateEnhancementService templateEnhancementService,
+                                 RequestValidationService validationService,
+                                 GitHubConfig githubPropertiesConfig,
+                                 CodeGenerationOrchestrator codeGenerationOrchestrator,
+                                 ControllerPathScanner controllerPathScanner,
+                                 ControllerMetadataExtractor controllerMetadataExtractor) {
+        this.config = config;
+        this.specDownloadService = specDownloadService;
+        this.generatorService = generatorService;
+        this.fileOpsService = fileOpsService;
+        this.templateService = templateService;
+        this.pomMergeService = pomMergeService;
+        this.pomCustomizationService = pomCustomizationService;
+        this.propertiesMergeService = propertiesMergeService;
+        this.gitHubService = gitHubService;
+        this.templateEnhancementService = templateEnhancementService;
+        this.validationService = validationService;
+        this.githubPropertiesConfig = githubPropertiesConfig;
+        this.codeGenerationOrchestrator = codeGenerationOrchestrator;
+        this.controllerPathScanner = controllerPathScanner;
+        this.controllerMetadataExtractor = controllerMetadataExtractor;
+    }
 
     /**
      * Generates Spring Boot project from OpenAPI specification

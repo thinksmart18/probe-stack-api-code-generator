@@ -8,8 +8,9 @@ import com.probe.stack.code.generator.service.DownloadService;
 import com.probe.stack.code.generator.service.MultipartRequestService;
 import com.probe.stack.code.generator.service.RequestValidationService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,16 +25,27 @@ import java.time.LocalDateTime;
  * REST controller for code generation operations
  * Thin controller - all business logic delegated to service layer
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/codegen")
-@RequiredArgsConstructor
 public class CodeGenerationController {
+
+    private static final Logger log = LoggerFactory.getLogger(CodeGenerationController.class);
 
     private final CodeGenerationService codeGenerationService;
     private final MultipartRequestService multipartRequestService;
     private final RequestValidationService validationService;
     private final DownloadService downloadService;
+
+    @Autowired
+    public CodeGenerationController(CodeGenerationService codeGenerationService,
+                                   MultipartRequestService multipartRequestService,
+                                   RequestValidationService validationService,
+                                   DownloadService downloadService) {
+        this.codeGenerationService = codeGenerationService;
+        this.multipartRequestService = multipartRequestService;
+        this.validationService = validationService;
+        this.downloadService = downloadService;
+    }
 
     /**
      * Generate Spring Boot project from OpenAPI specification (JSON payload)

@@ -14,7 +14,8 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ControllerMetadata;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.MethodMetadata;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ParameterMetadata;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -29,10 +30,10 @@ import java.util.*;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
 public class ExistingControllerEnhancer {
 
+    private static final Logger log = LoggerFactory.getLogger(ExistingControllerEnhancer.class);
     private final JavaParser javaParser = new JavaParser();
 
     /**

@@ -3,8 +3,9 @@ package com.probe.stack.code.generator.service;
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -19,15 +20,26 @@ import java.util.stream.Stream;
  * Service to enhance generated projects with custom templates
  * Handles copying Java classes, merging properties, and POM configurations
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class TemplateEnhancementService {
+
+    private static final Logger log = LoggerFactory.getLogger(TemplateEnhancementService.class);
 
     private final CodeGeneratorConfig config;
     private final PomCustomizationService pomCustomizationService;
     private final PropertiesMergeService propertiesMergeService;
     private final TemplateProcessingService templateProcessingService;
+
+    @Autowired
+    public TemplateEnhancementService(CodeGeneratorConfig config,
+                                      PomCustomizationService pomCustomizationService,
+                                      PropertiesMergeService propertiesMergeService,
+                                      TemplateProcessingService templateProcessingService) {
+        this.config = config;
+        this.pomCustomizationService = pomCustomizationService;
+        this.propertiesMergeService = propertiesMergeService;
+        this.templateProcessingService = templateProcessingService;
+    }
 
     /**
      * Enhances generated project with all template customizations
