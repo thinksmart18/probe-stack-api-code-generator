@@ -1,22 +1,24 @@
-# OpenAPI Code Generator Service
+# Probe Stack API Code Generator
 
-A Spring Boot microservice that automates the generation of Spring Boot application code from OpenAPI specifications.
+A Spring Boot microservice that automates the generation of complete Spring Boot applications from OpenAPI specifications. This service generates production-ready Spring Boot projects with REST controllers, services, repositories, and MongoDB integration.
 
 ## Features
 
 - **OpenAPI Code Generation**: Generates Spring Boot projects from OpenAPI 3.0 specifications
+- **Service Layer Generation**: Automatically creates service and repository classes for MongoDB
 - **Customizable Templates**: Copy additional Java code and configuration files from templates
 - **POM Merging**: Automatically merges Maven dependencies, properties, and plugins
 - **Properties Merging**: Merges application properties into generated projects
 - **Placeholder Replacement**: Updates placeholders in generated files (base packages, artifact IDs, etc.)
 - **Archive Support**: Option to return generated projects as ZIP archives
+- **GitHub Integration**: Create repositories and push generated code to GitHub
+- **File Upload Support**: Upload OpenAPI specs directly or provide URLs
 - **Automatic Cleanup**: Scheduled cleanup of old generated projects
-- **GitHub Integration**: Supports private repositories with GitHub tokens
 
 ## Prerequisites
 
 - Java 17 or higher
-- Maven 3.6+ 
+- Maven 3.6+
 - 2GB RAM minimum
 
 ## Quick Start
@@ -25,7 +27,7 @@ A Spring Boot microservice that automates the generation of Spring Boot applicat
 
 ```bash
 git clone <repository-url>
-cd openapi-code-generator
+cd probe-stack-api-code-generator
 mvn clean install
 ```
 
@@ -49,60 +51,447 @@ mvn spring-boot:run
 
 The service will start on `http://localhost:8080`
 
-## API Usage
+---
 
-### Generate Code
+## API Documentation
 
-**Endpoint:** `POST /api/v1/codegen/generate`
+## Main API: `/api/v1/codegen/generate`
 
-**Request Body:**
+The primary endpoint for generating Spring Boot projects from OpenAPI specifications.
+
+### Endpoint Details
+
+**Method:** `POST`
+**URL:** `/api/v1/codegen/generate`
+**Content-Type:** `application/json`
+**Controller:** `CodeGenerationController.java:46`
+
+### What This API Does
+
+This API performs the complete code generation workflow:
+
+1. **Downloads/Processes OpenAPI Specification** - Fetches the spec from URL or processes raw content
+2. **Generates REST Controllers** - Creates Spring Boot REST controllers with all endpoints defined in OpenAPI spec
+3. **Generates Model Classes** - Creates POJOs for all schemas/models in the spec
+4. **Generates Service Classes** - Creates service layer for business logic with MongoDB integration
+5. **Generates Repository Classes** - Creates Spring Data MongoDB repository interfaces
+6. **Enhances with Templates** - Copies custom templates (configs, utilities, exception handlers, etc.)
+7. **Merges POM Configuration** - Adds required dependencies and plugins to pom.xml
+8. **Merges Application Properties** - Adds application configuration
+9. **Updates README** - Generates project documentation
+10. **Creates Archive (Optional)** - Packages project as ZIP file
+11. **Pushes to GitHub (Optional)** - Creates GitHub repository and pushes code
+
+### Request Body
+
+#### Required Fields
+
+| Field | Type | Description | Validation | Example |
+|-------|------|-------------|------------|---------|
+| `groupName` | String | Maven group ID | Must match pattern: `^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$` | `"com.example"` |
+| `artifactId` | String | Maven artifact ID | Must match pattern: `^[a-z][a-z0-9-]*$` | `"my-service"` |
+| `basePackage` | String | Base Java package | Must match pattern: `^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$` | `"com.example.myservice"` |
+
+#### OpenAPI Specification (Choose One)
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `openApiSpecUrl` | String | URL to OpenAPI spec (YAML or JSON) | `"https://api.example.com/openapi.yaml"` |
+| `specContent` | String | Raw OpenAPI spec content | `"openapi: 3.0.0\ninfo:\n  title: My API..."` |
+| `specContentType` | String | Type when using specContent: `"json"` or `"yaml"` | `"yaml"` |
+
+#### Optional Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `version` | String | `"1.0.0"` | Project version |
+| `returnAsArchive` | Boolean | `false` | Return project as ZIP archive |
+| `githubToken` | String | `null` | GitHub personal access token for private repos |
+| `organization` | String | `null` | GitHub organization or username |
+| `branchName` | String | `"main"` | Initial branch name |
+| `repositoryName` | String | `null` | GitHub repository name (defaults to artifactId) |
+| `gitHubConfig` | Object | `null` | GitHub integration configuration |
+
+#### GitHub Configuration Object
+
+When `gitHubConfig.enabled` is `true`, the service will create a GitHub repository and push the generated code.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | Boolean | `false` | Enable GitHub integration |
+| `description` | String | `null` | Repository description |
+| `isPrivate` | Boolean | `true` | Create private repository |
+| `commitMessage` | String | `"Initial commit..."` | Commit message |
+| `autoInit` | Boolean | `false` | Initialize with README |
+
+### Request Examples
+
+#### Example 1: Basic Request (URL-based)
+
+```json
+{
+  "openApiSpecUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+  "groupName": "com.example",
+  "artifactId": "petstore-api",
+  "basePackage": "com.example.petstore"
+}
+```
+
+#### Example 2: With Raw Spec Content
+
+```json
+{
+  "specContent": "openapi: 3.0.0\ninfo:\n  title: Sample API\n  version: 1.0.0\npaths:\n  /users:\n    get:\n      summary: Get users\n      responses:\n        '200':\n          description: Success",
+  "specContentType": "yaml",
+  "groupName": "com.mycompany",
+  "artifactId": "sample-api",
+  "basePackage": "com.mycompany.sample",
+  "version": "2.0.0"
+}
+```
+
+#### Example 3: With Archive and GitHub Integration
+
 ```json
 {
   "openApiSpecUrl": "https://example.com/api/openapi.yaml",
-  "groupName": "com.example",
-  "artifactId": "my-service",
-  "basePackage": "com.example.myservice",
-  "githubToken": "ghp_xxxxx",
+  "groupName": "com.acme",
+  "artifactId": "order-service",
+  "basePackage": "com.acme.order",
   "version": "1.0.0",
-  "returnAsArchive": false
+  "returnAsArchive": true,
+  "githubToken": "ghp_xxxxxxxxxxxxxxxxxxxx",
+  "organization": "my-org",
+  "repositoryName": "order-service-api",
+  "branchName": "main",
+  "gitHubConfig": {
+    "enabled": true,
+    "description": "Order Management Service API",
+    "isPrivate": true,
+    "commitMessage": "Initial commit - Generated from OpenAPI spec",
+    "autoInit": false
+  }
 }
 ```
 
-**Response:**
+#### Example 4: Private GitHub Repository Spec
+
 ```json
 {
-  "generationId": "550e8400-e29b-41d4-a716-446655440000",
-  "projectPath": "/path/to/generated-projects/550e8400.../my-service",
-  "archivePath": null,
+  "openApiSpecUrl": "https://raw.githubusercontent.com/my-org/api-specs/main/openapi.yaml",
+  "githubToken": "ghp_xxxxxxxxxxxxxxxxxxxx",
+  "groupName": "com.enterprise",
+  "artifactId": "customer-api",
+  "basePackage": "com.enterprise.customer"
+}
+```
+
+### Response Body
+
+#### Success Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `generationId` | String | Unique identifier for this generation (UUID) |
+| `projectPath` | String | Absolute path to generated project directory |
+| `archivePath` | String | Path to ZIP archive (if `returnAsArchive` was true) |
+| `status` | Enum | Generation status: `SUCCESS`, `PARTIAL_SUCCESS`, or `FAILED` |
+| `timestamp` | DateTime | When generation completed (ISO 8601 format) |
+| `generatedFiles` | Array<String> | List of all generated file paths |
+| `messages` | Array<String> | Informational messages about the generation process |
+| `errorMessage` | String | Error description (only present if status is FAILED) |
+| `gitHubRepositoryInfo` | Object | GitHub repository details (if GitHub integration enabled) |
+
+#### GitHub Repository Info Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `repositoryUrl` | String | GitHub repository web URL |
+| `cloneUrl` | String | HTTPS clone URL |
+| `sshUrl` | String | SSH clone URL |
+| `fullName` | String | Repository full name (org/repo) |
+| `commitSha` | String | Initial commit SHA |
+| `branchName` | String | Branch name |
+| `pushSuccessful` | Boolean | Whether push was successful |
+
+#### Response Example (Success)
+
+```json
+{
+  "generationId": "a3f7b2c1-8e4d-4f9a-b1c2-3d4e5f6a7b8c",
+  "projectPath": "/home/user/generated-projects/a3f7b2c1-8e4d-4f9a-b1c2-3d4e5f6a7b8c/petstore-api",
+  "archivePath": "/home/user/generated-projects/a3f7b2c1-8e4d-4f9a-b1c2-3d4e5f6a7b8c/petstore-api.zip",
   "status": "SUCCESS",
-  "timestamp": "2025-10-20T10:30:00",
-  "generatedFiles": ["file1.java", "file2.java", "..."],
+  "timestamp": "2025-11-12T14:30:45.123",
+  "generatedFiles": [
+    "src/main/java/com/example/petstore/api/PetApi.java",
+    "src/main/java/com/example/petstore/api/StoreApi.java",
+    "src/main/java/com/example/petstore/model/Pet.java",
+    "src/main/java/com/example/petstore/model/Order.java",
+    "src/main/java/com/example/petstore/service/PetService.java",
+    "src/main/java/com/example/petstore/service/impl/PetServiceImpl.java",
+    "src/main/java/com/example/petstore/repository/PetRepository.java",
+    "pom.xml",
+    "README.md"
+  ],
   "messages": [
-    "Downloaded OpenAPI specification",
-    "Generated 45 files from OpenAPI spec",
-    "Merged POM configuration",
-    "Replaced placeholders in 42 files"
-  ]
+    "Downloaded OpenAPI specification from URL",
+    "Generated 12 REST controller methods",
+    "Generated 8 model classes",
+    "Generated 4 service interfaces",
+    "Generated 4 service implementations",
+    "Generated 4 MongoDB repositories",
+    "Copied 15 template files",
+    "Merged POM dependencies and plugins",
+    "Merged application properties",
+    "Updated README with API documentation",
+    "Created ZIP archive"
+  ],
+  "errorMessage": null,
+  "gitHubRepositoryInfo": {
+    "repositoryUrl": "https://github.com/my-org/petstore-api",
+    "cloneUrl": "https://github.com/my-org/petstore-api.git",
+    "sshUrl": "git@github.com:my-org/petstore-api.git",
+    "fullName": "my-org/petstore-api",
+    "commitSha": "f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6",
+    "branchName": "main",
+    "pushSuccessful": true
+  }
 }
 ```
 
-### Download Generated Project
+#### Response Example (Error)
 
-**Endpoint:** `GET /api/v1/codegen/download/{generationId}`
-
-Returns the generated project as a ZIP file.
-
-### Health Check
-
-**Endpoint:** `GET /api/v1/codegen/health`
-
-**Response:**
 ```json
 {
-  "status": "UP",
-  "message": "Code Generation Service is running"
+  "generationId": null,
+  "projectPath": null,
+  "archivePath": null,
+  "status": "FAILED",
+  "timestamp": "2025-11-12T14:35:22.456",
+  "generatedFiles": null,
+  "messages": null,
+  "errorMessage": "Invalid OpenAPI specification: Unable to parse YAML content at line 15",
+  "gitHubRepositoryInfo": null
 }
 ```
+
+### HTTP Status Codes
+
+| Status Code | Description | Response Status |
+|-------------|-------------|-----------------|
+| `200 OK` | Generation successful or partially successful | `SUCCESS` or `PARTIAL_SUCCESS` |
+| `400 Bad Request` | Invalid request (validation failed) | `FAILED` |
+| `500 Internal Server Error` | Generation failed due to internal error | `FAILED` |
+
+### Error Scenarios
+
+| Error | HTTP Status | Error Message Example |
+|-------|-------------|----------------------|
+| Missing required field | 400 | `"Group name is required"` |
+| Invalid format | 400 | `"Invalid package name format"` |
+| Both URL and content provided | 400 | `"Provide either openApiSpecUrl or specContent, not both"` |
+| Invalid OpenAPI spec | 400 | `"Invalid OpenAPI specification: ..."` |
+| Unable to download spec | 400 | `"Failed to download OpenAPI specification from URL"` |
+| GitHub token invalid | 400 | `"Invalid GitHub token or insufficient permissions"` |
+| Template processing error | 500 | `"Failed to process templates: ..."` |
+
+---
+
+## Additional Endpoints
+
+### Upload API: `/api/v1/codegen/generate/upload`
+
+**Method:** `POST`
+**Content-Type:** `multipart/form-data`
+**Controller:** `CodeGenerationController.java:72`
+
+Upload OpenAPI specification as a file instead of URL/content.
+
+#### Request Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `file` | MultipartFile | OpenAPI spec file (YAML or JSON) |
+| `request` | String | JSON string with other request parameters |
+
+#### cURL Example
+
+```bash
+curl -X POST http://localhost:8080/api/v1/codegen/generate/upload \
+  -F "file=@openapi.yaml" \
+  -F 'request={"groupName":"com.example","artifactId":"my-api","basePackage":"com.example.myapi"}'
+```
+
+---
+
+### Download API: `/api/v1/codegen/download/{generationId}`
+
+**Method:** `GET`
+**Controller:** `CodeGenerationController.java:100`
+
+Download the generated project as a ZIP archive.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `generationId` | String | Generation ID from generate response |
+
+#### Response
+
+- **Success (200)**: Returns ZIP file with headers:
+  - `Content-Disposition: attachment; filename=<artifact-id>.zip`
+  - `Content-Type: application/octet-stream`
+- **Not Found (404)**: Generation ID not found
+- **Error (500)**: Internal server error
+
+#### cURL Example
+
+```bash
+curl -O -J http://localhost:8080/api/v1/codegen/download/a3f7b2c1-8e4d-4f9a-b1c2-3d4e5f6a7b8c
+```
+
+---
+
+## Generated Project Structure
+
+The generated Spring Boot project includes:
+
+```
+my-service/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/myservice/
+│   │   │       ├── api/              # REST Controllers (from OpenAPI)
+│   │   │       ├── model/            # Model/DTO classes (from OpenAPI)
+│   │   │       ├── service/          # Service interfaces
+│   │   │       │   └── impl/         # Service implementations
+│   │   │       ├── repository/       # MongoDB repositories
+│   │   │       ├── config/           # Configuration classes (from templates)
+│   │   │       ├── exception/        # Exception handlers (from templates)
+│   │   │       └── util/             # Utility classes (from templates)
+│   │   └── resources/
+│   │       ├── application.yml       # Application configuration
+│   │       └── application-dev.yml   # Dev profile configuration
+│   └── test/
+│       └── java/
+│           └── com/example/myservice/
+├── pom.xml                           # Maven configuration
+├── README.md                         # Project documentation
+└── Dockerfile                        # Docker configuration (if in templates)
+```
+
+### Key Generated Components
+
+1. **REST Controllers** (`api/` package)
+   - Generated from OpenAPI paths
+   - Spring `@RestController` annotations
+   - Request/Response mappings
+   - Validation annotations
+
+2. **Model Classes** (`model/` package)
+   - Generated from OpenAPI schemas
+   - MongoDB `@Document` annotations
+   - Jakarta Bean Validation
+   - Lombok annotations
+
+3. **Service Layer** (`service/` package)
+   - Service interfaces for business logic
+   - Implementation classes with MongoDB integration
+   - `@Service` annotated
+   - Repository injection
+
+4. **Repositories** (`repository/` package)
+   - Extends `MongoRepository<Entity, ID>`
+   - Spring Data MongoDB integration
+   - Custom query methods
+
+## cURL Examples
+
+### Example 1: Generate from Public OpenAPI Spec
+
+```bash
+curl -X POST http://localhost:8080/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "openApiSpecUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+    "groupName": "com.example",
+    "artifactId": "petstore-api",
+    "basePackage": "com.example.petstore",
+    "version": "1.0.0"
+  }'
+```
+
+### Example 2: Generate with Archive
+
+```bash
+curl -X POST http://localhost:8080/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "openApiSpecUrl": "https://api.example.com/openapi.yaml",
+    "groupName": "com.mycompany",
+    "artifactId": "order-service",
+    "basePackage": "com.mycompany.order",
+    "version": "2.0.0",
+    "returnAsArchive": true
+  }' | jq
+```
+
+### Example 3: Generate with GitHub Integration
+
+```bash
+curl -X POST http://localhost:8080/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "openApiSpecUrl": "https://example.com/api/openapi.yaml",
+    "groupName": "com.enterprise",
+    "artifactId": "payment-api",
+    "basePackage": "com.enterprise.payment",
+    "githubToken": "ghp_xxxxxxxxxxxxxxxxxxxx",
+    "organization": "my-org",
+    "gitHubConfig": {
+      "enabled": true,
+      "description": "Payment Service API",
+      "isPrivate": true,
+      "commitMessage": "Initial commit from code generator"
+    }
+  }' | jq
+```
+
+### Example 4: Upload OpenAPI File
+
+```bash
+curl -X POST http://localhost:8080/api/v1/codegen/generate/upload \
+  -F "file=@/path/to/openapi.yaml" \
+  -F 'request={
+    "groupName": "com.example",
+    "artifactId": "user-api",
+    "basePackage": "com.example.user",
+    "version": "1.0.0",
+    "returnAsArchive": true
+  }'
+```
+
+### Example 5: Download Generated Project
+
+```bash
+# First, generate the project and capture the generationId
+GENERATION_ID=$(curl -X POST http://localhost:8080/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "openApiSpecUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+    "groupName": "com.example",
+    "artifactId": "petstore-api",
+    "basePackage": "com.example.petstore"
+  }' | jq -r '.generationId')
+
+# Then download the project
+curl -O -J http://localhost:8080/api/v1/codegen/download/$GENERATION_ID
+```
+
+---
 
 ## Configuration
 
@@ -224,16 +613,20 @@ docker run -p 8080:8080 \
   openapi-code-generator
 ```
 
-## Project Structure
+## Code Generator Service Structure
 
 ```
-openapi-code-generator/
+probe-stack-api-code-generator/
 ├── src/
 │   ├── main/
 │   │   ├── java/
-│   │   │   └── com/codegen/openapi/
+│   │   │   └── com/probe/stack/code/generator/
+│   │   │       ├── component/
+│   │   │       │   ├── CodeGenerationOrchestrator.java
+│   │   │       │   └── ExistingControllerEnhancer.java
 │   │   │       ├── config/
-│   │   │       │   └── CodeGeneratorConfig.java
+│   │   │       │   ├── CodeGeneratorConfig.java
+│   │   │       │   └── GitHubConfig.java
 │   │   │       ├── controller/
 │   │   │       │   └── CodeGenerationController.java
 │   │   │       ├── dto/
@@ -242,29 +635,36 @@ openapi-code-generator/
 │   │   │       ├── exception/
 │   │   │       │   ├── CodeGenerationException.java
 │   │   │       │   └── GlobalExceptionHandler.java
+│   │   │       ├── parser/
+│   │   │       │   └── ControllerMetadataExtractor.java
 │   │   │       ├── scheduler/
 │   │   │       │   └── CleanupScheduler.java
 │   │   │       ├── service/
 │   │   │       │   ├── CodeGenerationService.java
+│   │   │       │   ├── DownloadService.java
 │   │   │       │   ├── FileOperationsService.java
+│   │   │       │   ├── GitHubService.java
+│   │   │       │   ├── MultipartRequestService.java
 │   │   │       │   ├── OpenApiGeneratorService.java
+│   │   │       │   ├── PomCustomizationService.java
 │   │   │       │   ├── PomMergeService.java
 │   │   │       │   ├── PropertiesMergeService.java
+│   │   │       │   ├── RequestValidationService.java
 │   │   │       │   ├── SpecificationDownloadService.java
+│   │   │       │   ├── TemplateEnhancementService.java
 │   │   │       │   └── TemplateProcessingService.java
-│   │   │       └── CodeGeneratorApplication.java
+│   │   │       ├── util/
+│   │   │       │   ├── AppConstants.java
+│   │   │       │   └── ControllerPathScanner.java
+│   │   │       └── ProbeStackApiCodeGeneratorApplication.java
 │   │   └── resources/
 │   │       └── application.yml
 │   └── test/
 │       └── java/
-│           └── com/codegen/openapi/
-│               ├── controller/
-│               │   └── CodeGenerationControllerTest.java
-│               └── service/
-│                   ├── CodeGenerationServiceTest.java
-│                   ├── FileOperationsServiceTest.java
-│                   └── TemplateProcessingServiceTest.java
+│           └── com/probe/stack/code/generator/
+│               └── (test files)
 ├── templates/
+├── generated-projects/
 ├── pom.xml
 └── README.md
 ```
@@ -291,24 +691,7 @@ mvn jacoco:report
 
 Report available at: `target/site/jacoco/index.html`
 
-## Example Usage with cURL
-
-```bash
-# Generate code from public OpenAPI spec
-curl -X POST http://localhost:8080/api/v1/codegen/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "openApiSpecUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
-    "groupName": "com.example",
-    "artifactId": "petstore-api",
-    "basePackage": "com.example.petstore",
-    "version": "1.0.0",
-    "returnAsArchive": true
-  }'
-
-# Download generated project
-curl -O -J http://localhost:8080/api/v1/codegen/download/{generationId}
-```
+---
 
 ## Troubleshooting
 
