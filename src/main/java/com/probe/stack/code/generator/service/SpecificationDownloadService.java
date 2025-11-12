@@ -3,8 +3,9 @@ package com.probe.stack.code.generator.service;
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,12 +21,17 @@ import java.nio.file.StandardCopyOption;
  * Service for downloading/processing OpenAPI specifications
  * Supports URL, raw content, or file upload
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class SpecificationDownloadService {
 
+    private static final Logger log = LoggerFactory.getLogger(SpecificationDownloadService.class);
+
     private final CodeGeneratorConfig config;
+
+    @Autowired
+    public SpecificationDownloadService(CodeGeneratorConfig config) {
+        this.config = config;
+    }
 
     /**
      * Gets OpenAPI specification and saves it to a file

@@ -1,8 +1,8 @@
 package com.probe.stack.code.generator.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
@@ -15,19 +15,37 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Service for file system operations
+ * Service for file system operations including copying, archiving, and cleanup.
+ * Provides high-level file management functionality for the code generation process
+ * including directory copying, ZIP archive creation, directory/file deletion,
+ * and scheduled cleanup of old projects.
+ *
+ * <p>Key features:
+ * <ul>
+ *   <li>Recursive directory copying with structure preservation</li>
+ *   <li>ZIP archive creation from directory contents</li>
+ *   <li>Safe directory and file deletion</li>
+ *   <li>Time-based cleanup of old generated projects</li>
+ * </ul>
+ *
+ * @author ProbeStack
+ * @version 1.0
+ * @since 1.0
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class FileOperationsService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(FileOperationsService.class);
+
     /**
-     * Copies files from source directory to target directory, preserving structure
+     * Copies files from source directory to target directory, preserving structure.
+     * Recursively walks through the source directory and copies all files while
+     * maintaining the directory hierarchy in the target location.
      *
-     * @param sourceDir Source directory
-     * @param targetDir Target directory
-     * @return List of copied file paths
+     * @param sourceDir Source directory to copy from
+     * @param targetDir Target directory to copy to
+     * @return List of absolute paths of all copied files
+     * @throws IOException if directory traversal or file copying fails
      */
     public List<String> copyDirectory(Path sourceDir, Path targetDir) throws IOException {
         log.info("Copying directory from {} to {}", sourceDir, targetDir);
@@ -60,11 +78,14 @@ public class FileOperationsService {
     }
     
     /**
-     * Creates a ZIP archive of the specified directory
+     * Creates a ZIP archive of the specified directory.
+     * Recursively walks through the source directory and packages all files
+     * into a ZIP archive, preserving the directory structure.
      *
      * @param sourceDir Directory to archive
-     * @param zipFilePath Path for the output ZIP file
+     * @param zipFilePath Path for the output ZIP file (including filename)
      * @return Path to the created ZIP file
+     * @throws IOException if archive creation or file access fails
      */
     public Path createArchive(Path sourceDir, Path zipFilePath) throws IOException {
         log.info("Creating archive: {}", zipFilePath);
@@ -88,10 +109,13 @@ public class FileOperationsService {
     }
     
     /**
-     * Creates a directory, creating parent directories if needed
+     * Creates a directory, creating parent directories if needed.
+     * Uses createDirectories to ensure all parent directories exist.
+     * If the directory already exists, this method does nothing.
      *
      * @param directory Path to create
-     * @return Created directory path
+     * @return The created (or existing) directory path
+     * @throws IOException if directory creation fails
      */
     public Path createDirectory(Path directory) throws IOException {
         if (!Files.exists(directory)) {
@@ -102,9 +126,11 @@ public class FileOperationsService {
     }
     
     /**
-     * Deletes a directory and all its contents
+     * Deletes a directory and all its contents recursively.
+     * Uses Apache Commons IO for safe recursive deletion.
+     * Logs errors but does not throw exceptions, allowing the application to continue.
      *
-     * @param directory Directory to delete
+     * @param directory Directory to delete (along with all subdirectories and files)
      */
     public void deleteDirectory(Path directory) {
         try {
@@ -118,7 +144,9 @@ public class FileOperationsService {
     }
 
     /**
-     * Deletes a single file
+     * Deletes a single file.
+     * Only deletes if the path exists and is a regular file (not a directory).
+     * Logs errors but does not throw exceptions.
      *
      * @param file File to delete
      */
@@ -132,12 +160,16 @@ public class FileOperationsService {
             log.error("Failed to delete file: {}", file, e);
         }
     }
-    
+
     /**
-     * Cleans up old generated projects
+     * Cleans up old generated projects based on last modified time.
+     * Scans the base directory for projects and deletes those older than
+     * the specified number of hours. This method is typically called by
+     * a scheduled task to prevent disk space issues.
      *
-     * @param baseDir Base directory containing generated projects
-     * @param hoursOld Delete projects older than this many hours
+     * @param baseDir Base directory containing generated project subdirectories
+     * @param hoursOld Delete projects with last modified time older than this many hours.
+     *                 If 0 or negative, no cleanup is performed
      */
     public void cleanupOldProjects(Path baseDir, int hoursOld) {
         if (hoursOld <= 0 || !Files.exists(baseDir)) {

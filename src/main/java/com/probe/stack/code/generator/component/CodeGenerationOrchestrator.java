@@ -3,8 +3,9 @@ package com.probe.stack.code.generator.component;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ControllerMetadata;
 import com.probe.stack.code.generator.util.ControllerPathScanner;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -20,16 +21,29 @@ import java.util.Optional;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class CodeGenerationOrchestrator {
+
+    private static final Logger log = LoggerFactory.getLogger(CodeGenerationOrchestrator.class);
 
     private final ControllerMetadataExtractor metadataExtractor;
     private final ServiceClassGenerator serviceGenerator;
     private final RepositoryInterfaceGenerator repositoryGenerator;
     private final ExistingControllerEnhancer controllerEnhancer;
     private final ControllerPathScanner controllerLocator;
+
+    @Autowired
+    public CodeGenerationOrchestrator(ControllerMetadataExtractor metadataExtractor,
+                                     ServiceClassGenerator serviceGenerator,
+                                     RepositoryInterfaceGenerator repositoryGenerator,
+                                     ExistingControllerEnhancer controllerEnhancer,
+                                     ControllerPathScanner controllerLocator) {
+        this.metadataExtractor = metadataExtractor;
+        this.serviceGenerator = serviceGenerator;
+        this.repositoryGenerator = repositoryGenerator;
+        this.controllerEnhancer = controllerEnhancer;
+        this.controllerLocator = controllerLocator;
+    }
 
     /**
      * Generates all artifacts, enhancing existing controllers instead of creating duplicates.

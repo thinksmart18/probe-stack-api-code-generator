@@ -2,7 +2,8 @@ package com.probe.stack.code.generator.component;
 
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ControllerMetadata;
 import com.squareup.javapoet.*;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +16,10 @@ import java.io.IOException;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
 public class RepositoryInterfaceGenerator {
+
+    private static final Logger log = LoggerFactory.getLogger(RepositoryInterfaceGenerator.class);
 
     /**
      * Generates a MongoDB repository interface for the given entity.
