@@ -1,5 +1,6 @@
 package com.probe.stack.code.generator.service;
 
+import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class DownloadService {
-    
-    private static final String GENERATED_PROJECTS_DIR = "./generated-projects";
+
+    private final CodeGeneratorConfig config;
     
     /**
      * Finds and returns the ZIP file resource for a generation ID
@@ -70,7 +71,7 @@ public class DownloadService {
      * @return Path to the generation directory
      */
     private Path getGenerationDirectory(String generationId) {
-        return Paths.get(GENERATED_PROJECTS_DIR, generationId);
+        return Paths.get(config.getDirectories().getOutputBase(), generationId);
     }
     
     /**
@@ -98,7 +99,7 @@ public class DownloadService {
             return resource.getFile().getName();
         } catch (IOException e) {
             log.warn("Failed to get filename from resource, using default", e);
-            return "generated-project.zip";
+            return config.getFiles().getDefaultArchiveName();
         }
     }
     

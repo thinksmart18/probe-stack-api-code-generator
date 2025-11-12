@@ -31,14 +31,19 @@ mvn clean install
 
 ### 2. Configure
 
-Create or edit `application.yml`:
+Create or edit `application.yaml`:
 
 ```yaml
-codegen:
-  output-base-dir: ./generated-projects
-  source-template-dir: ./templates
-  temp-dir: ./temp
-  cleanup-hours: 24
+probe:
+  stack:
+    generator:
+      directories:
+        output-base: ./generated-projects
+        template-config: ./codegen_config
+        temp: ./temp
+      cleanup:
+        hours: 24
+        cron: "0 0 * * * *"
 ```
 
 ### 3. Run
@@ -112,64 +117,172 @@ Returns the generated project as a ZIP file.
 server:
   port: 8080
 
-codegen:
-  # Base directory for generated projects
-  output-base-dir: ./generated-projects
-  
-  # Template directory with additional files to copy
-  source-template-dir: ./templates
-  
-  # Temporary directory for downloads
-  temp-dir: ./temp
-  
-  # Auto-cleanup after N hours (0 = disabled)
-  cleanup-hours: 24
-  
-  # OpenAPI Generator settings
-  generator:
-    language: spring
-    library: spring-boot
-    api-package-suffix: api
-    model-package-suffix: model
-  
-  # Additional POM properties to merge
-  pom:
-    properties:
-      maven.compiler.source: 17
-      maven.compiler.target: 17
-      springdoc-openapi.version: 2.3.0
-    
-    dependencies:
-      - groupId: org.springdoc
-        artifactId: springdoc-openapi-starter-webmvc-ui
-        version: ${springdoc-openapi.version}
-  
-  # Additional application properties to merge
-  application-properties:
-    server.port: 8080
-    spring.application.name: generated-service
-    springdoc.api-docs.path: /api-docs
+spring:
+  application:
+    name: probe-stack-api-code-generator
+
+probe:
+  stack:
+    generator:
+      # -----------------------------------------------------------------------
+      # Directory Configuration
+      # -----------------------------------------------------------------------
+      directories:
+        # Base directory for generated projects
+        output-base: ./generated-projects
+        # Template configuration directory structure
+        template-config: ./codegen_config
+        # Temporary directory for downloads
+        temp: ./temp
+
+      # -----------------------------------------------------------------------
+      # Cleanup Configuration
+      # -----------------------------------------------------------------------
+      cleanup:
+        # Cleanup generated files after specified hours (0 = no cleanup)
+        hours: 24
+        # Cron expression for cleanup scheduler (default: every hour at minute 0)
+        cron: "0 0 * * * *"
+
+      # -----------------------------------------------------------------------
+      # Template Configuration
+      # -----------------------------------------------------------------------
+      templates:
+        java-source-dir: java_code/src/main/java
+        resources-dir: java_code/src/main/resources
+        pom-template: maven_config
+
+      # -----------------------------------------------------------------------
+      # OpenAPI Generator Configuration
+      # -----------------------------------------------------------------------
+      openapi:
+        generator:
+          language: spring
+          library: spring-boot
+          api-package-suffix: api
+          model-package-suffix: model
+
+      # -----------------------------------------------------------------------
+      # HTTP Client Configuration
+      # -----------------------------------------------------------------------
+      http:
+        connect-timeout-ms: 30000
+        read-timeout-ms: 30000
+        user-agent: OpenAPI-Code-Generator/1.0
+
+      # -----------------------------------------------------------------------
+      # File Configuration
+      # -----------------------------------------------------------------------
+      files:
+        default-archive-name: generated-project.zip
+        text-file-extensions:
+          - .java
+          - .xml
+          - .properties
+          - .yml
+          - .yaml
+          - .md
+
+      # -----------------------------------------------------------------------
+      # GitHub Integration Configuration
+      # -----------------------------------------------------------------------
+      github:
+        version: 1.0.0
+        description: Generated Spring Boot application from OpenAPI specification
+        push:
+          enabled: true
+        config:
+          is-private: true
+          commit:
+            message: "Initial Commit: Generated {app_name}"
+        personal:
+          access-token: "${github_personal_access_token}"
+
+      # -----------------------------------------------------------------------
+      # Default POM Configuration (Fallback)
+      # -----------------------------------------------------------------------
+      pom:
+        properties:
+          maven.compiler.source: 17
+          maven.compiler.target: 17
+          springdoc-openapi.version: 2.3.0
+        dependencies:
+          - groupId: org.springdoc
+            artifactId: springdoc-openapi-starter-webmvc-ui
+            version: ${springdoc-openapi.version}
+          - groupId: org.springframework.boot
+            artifactId: spring-boot-starter-validation
+
+      # -----------------------------------------------------------------------
+      # Default Application Properties (Fallback)
+      # -----------------------------------------------------------------------
+      application-properties:
+        server.port: 8080
+        spring.application.name: generated-service
+        springdoc.api-docs.path: /api-docs
+        springdoc.swagger-ui.path: /swagger-ui.html
+```
+
+### Environment Variables
+
+The application supports the following environment variables to override default configuration:
+
+| Environment Variable | Description | Default Value | Configuration Property |
+|---------------------|-------------|---------------|----------------------|
+| `CODEGEN_OUTPUT_DIR` | Base directory for generated projects | `./generated-projects` | `probe.stack.generator.directories.output-base` |
+| `CODEGEN_TEMPLATE_DIR` | Template configuration directory | `./codegen_config` | `probe.stack.generator.directories.template-config` |
+| `CODEGEN_TEMP_DIR` | Temporary directory for downloads | `./temp` | `probe.stack.generator.directories.temp` |
+| `CODEGEN_CLEANUP_HOURS` | Auto-cleanup after N hours (0 = disabled) | `24` | `probe.stack.generator.cleanup.hours` |
+| `github_personal_access_token` | GitHub Personal Access Token for private repositories | - | `probe.stack.generator.github.personal.access-token` |
+
+**Example usage:**
+
+```bash
+# Set environment variables
+export CODEGEN_OUTPUT_DIR=/var/app/generated
+export CODEGEN_TEMPLATE_DIR=/var/app/templates
+export CODEGEN_TEMP_DIR=/tmp/codegen
+export CODEGEN_CLEANUP_HOURS=48
+export github_personal_access_token=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Run the application
+mvn spring-boot:run
+```
+
+**Docker usage:**
+
+```bash
+docker run -p 8080:8080 \
+  -e CODEGEN_OUTPUT_DIR=/app/output \
+  -e CODEGEN_TEMPLATE_DIR=/app/config \
+  -e github_personal_access_token=ghp_xxxxx \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/output:/app/output \
+  openapi-code-generator
 ```
 
 ## Template Directory Structure
 
-Place custom templates and files in the `source-template-dir`:
+Place custom templates and files in the `directories.template-config` directory:
 
 ```
-templates/
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── ${basePackagePath}/
-│       │       ├── config/
-│       │       │   └── CustomConfig.java
-│       │       ├── exception/
-│       │       │   └── GlobalExceptionHandler.java
-│       │       └── util/
-│       │           └── UtilityClass.java
-│       └── resources/
-│           ├── application-dev.properties
-│           └── logback-spring.xml
+codegen_config/
+├── java_code/
+│   └── src/
+│       └── main/
+│           ├── java/
+│           │   └── ${basePackagePath}/
+│           │       ├── config/
+│           │       │   └── CustomConfig.java
+│           │       ├── exception/
+│           │       │   └── GlobalExceptionHandler.java
+│           │       └── util/
+│           │           └── UtilityClass.java
+│           └── resources/
+│               ├── application-dev.properties
+│               └── logback-spring.xml
+├── maven_config/
+│   └── pom.xml
 ├── Dockerfile
 └── README.md
 ```
@@ -219,8 +332,10 @@ docker build -t openapi-code-generator .
 
 # Run container
 docker run -p 8080:8080 \
-  -v $(pwd)/templates:/app/templates \
-  -v $(pwd)/generated-projects:/app/generated-projects \
+  -e CODEGEN_TEMPLATE_DIR=/app/config \
+  -e CODEGEN_OUTPUT_DIR=/app/output \
+  -v $(pwd)/codegen_config:/app/config \
+  -v $(pwd)/generated-projects:/app/output \
   openapi-code-generator
 ```
 
@@ -254,7 +369,7 @@ openapi-code-generator/
 │   │   │       │   └── TemplateProcessingService.java
 │   │   │       └── CodeGeneratorApplication.java
 │   │   └── resources/
-│   │       └── application.yml
+│   │       └── application.yaml
 │   └── test/
 │       └── java/
 │           └── com/codegen/openapi/
@@ -322,7 +437,7 @@ curl -O -J http://localhost:8080/api/v1/codegen/download/{generationId}
 
 **Issue:** Template files not being copied
 
-**Solution:** Check that `source-template-dir` exists and contains files. Verify directory permissions.
+**Solution:** Check that `probe.stack.generator.directories.template-config` exists and contains files. Verify directory permissions and ensure the directory structure follows the expected layout (java_code/, maven_config/, etc.).
 
 ---
 
@@ -343,37 +458,93 @@ java -Xmx2g -jar openapi-code-generator.jar
 
 1. **OpenAPI Specs**: Use OpenAPI 3.0+ specifications for best compatibility
 2. **Templates**: Keep templates generic and use placeholders extensively
-3. **Cleanup**: Configure appropriate `cleanup-hours` based on your usage patterns
+3. **Cleanup**: Configure appropriate `probe.stack.generator.cleanup.hours` based on your usage patterns
 4. **Testing**: Always test generated code before deploying to production
 5. **Version Control**: Keep generated projects in version control
-6. **Monitoring**: Monitor disk space in `output-base-dir`
+6. **Monitoring**: Monitor disk space in `probe.stack.generator.directories.output-base`
+7. **Environment Variables**: Use environment variables for sensitive data like GitHub tokens
+8. **HTTP Timeouts**: Adjust `probe.stack.generator.http` settings for large OpenAPI specs
 
 ## Advanced Configuration
 
 ### Custom Dependencies
 
-Add custom Maven dependencies in `application.yml`:
+Add custom Maven dependencies in `application.yaml`:
 
 ```yaml
-codegen:
-  pom:
-    dependencies:
-      - groupId: io.jsonwebtoken
-        artifactId: jjwt-api
-        version: 0.11.5
-      - groupId: org.mapstruct
-        artifactId: mapstruct
-        version: 1.5.5.Final
+probe:
+  stack:
+    generator:
+      pom:
+        dependencies:
+          - groupId: io.jsonwebtoken
+            artifactId: jjwt-api
+            version: 0.11.5
+          - groupId: org.mapstruct
+            artifactId: mapstruct
+            version: 1.5.5.Final
 ```
 
 ### Custom Properties
 
 ```yaml
-codegen:
-  application-properties:
-    spring.datasource.url: jdbc:postgresql://localhost:5432/mydb
-    spring.jpa.hibernate.ddl-auto: validate
-    logging.level.root: INFO
+probe:
+  stack:
+    generator:
+      application-properties:
+        spring.datasource.url: jdbc:postgresql://localhost:5432/mydb
+        spring.jpa.hibernate.ddl-auto: validate
+        logging.level.root: INFO
+```
+
+### HTTP Client Configuration
+
+Configure HTTP timeouts and user agent for OpenAPI spec downloads:
+
+```yaml
+probe:
+  stack:
+    generator:
+      http:
+        connect-timeout-ms: 60000
+        read-timeout-ms: 60000
+        user-agent: Custom-Agent/2.0
+```
+
+### GitHub Integration
+
+Configure GitHub integration for automatic repository creation and push:
+
+```yaml
+probe:
+  stack:
+    generator:
+      github:
+        version: 1.0.0
+        description: Custom generated application
+        push:
+          enabled: true
+        config:
+          is-private: false
+          commit:
+            message: "Initial commit for {app_name}"
+        personal:
+          access-token: "${github_personal_access_token}"
+```
+
+### Cleanup Configuration
+
+Configure automatic cleanup of old generated projects:
+
+```yaml
+probe:
+  stack:
+    generator:
+      cleanup:
+        # Cleanup files older than 48 hours
+        hours: 48
+        # Run cleanup every day at 2 AM
+        cron: "0 0 2 * * *"
 ```
 
 ## Contributing

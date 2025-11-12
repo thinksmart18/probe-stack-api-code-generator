@@ -39,11 +39,11 @@ public class TemplateEnhancementService {
     public List<String> enhanceProject(Path projectDir, CodeGenerationRequest request) {
         log.info("Starting project enhancement with templates");
         log.info("Project directory: {}", projectDir);
-        log.info("Template config directory: {}", config.getTemplateConfigDir());
+        log.info("Template config directory: {}", config.getDirectories().getTemplateConfig());
 
         List<String> messages = new ArrayList<>();
 
-        Path templateDir = Paths.get(config.getTemplateConfigDir());
+        Path templateDir = Paths.get(config.getDirectories().getTemplateConfig());
 
         if (!Files.exists(templateDir)) {
             log.warn("Template directory not found: {}", templateDir);
@@ -362,7 +362,7 @@ public class TemplateEnhancementService {
      * @return true if valid structure exists
      */
     public boolean validateTemplateStructure() {
-        Path templateDir = Paths.get(config.getTemplateConfigDir());
+        Path templateDir = Paths.get(config.getDirectories().getTemplateConfig());
 
         if (!Files.exists(templateDir)) {
             log.warn("Template directory does not exist: {}", templateDir);

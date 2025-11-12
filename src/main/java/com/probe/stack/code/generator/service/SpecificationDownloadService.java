@@ -1,5 +1,6 @@
 package com.probe.stack.code.generator.service;
 
+import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,8 @@ import java.nio.file.StandardCopyOption;
 @Service
 @RequiredArgsConstructor
 public class SpecificationDownloadService {
+
+    private final CodeGeneratorConfig config;
 
     /**
      * Gets OpenAPI specification and saves it to a file
@@ -91,8 +94,8 @@ public class SpecificationDownloadService {
 
             // Set headers
             connection.setRequestMethod("GET");
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
+            connection.setConnectTimeout(config.getHttp().getConnectTimeoutMs());
+            connection.setReadTimeout(config.getHttp().getReadTimeoutMs());
 
             // Add GitHub token if provided
             if (githubToken != null && !githubToken.isEmpty()) {
@@ -100,7 +103,7 @@ public class SpecificationDownloadService {
             }
 
             // Set User-Agent
-            connection.setRequestProperty("User-Agent", "OpenAPI-Code-Generator/1.0");
+            connection.setRequestProperty("User-Agent", config.getHttp().getUserAgent());
 
             int responseCode = connection.getResponseCode();
 

@@ -50,7 +50,7 @@ public class GitHubService {
 
         try {
             // Connect to GitHub
-            GitHub github = connectToGitHub(githubPropertiesConfig.getPersonal().getAccesstoken());
+            GitHub github = connectToGitHub(githubPropertiesConfig.getPersonal().getAccessToken());
 
             // Create repository
             GHRepository repository = createRepository(github, request);
@@ -73,7 +73,7 @@ public class GitHubService {
      */
     private void validateGitHubConfig(CodeGenerationRequest request) {
 
-        if (githubPropertiesConfig.getPersonal().getAccesstoken() == null || githubPropertiesConfig.getPersonal().getAccesstoken().isEmpty()) {
+        if (githubPropertiesConfig.getPersonal().getAccessToken() == null || githubPropertiesConfig.getPersonal().getAccessToken().isEmpty()) {
             throw new CodeGenerationException("GitHub token is required for repository creation");
         }
 
@@ -236,7 +236,7 @@ public class GitHubService {
                         .setRemote("origin")
                         .setRefSpecs(new RefSpec(branchName + ":" + branchName))
                         .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
-                                githubPropertiesConfig.getPersonal().getAccesstoken(), ""))
+                                githubPropertiesConfig.getPersonal().getAccessToken(), ""))
                         .setForce(true)
                         .call();
 
