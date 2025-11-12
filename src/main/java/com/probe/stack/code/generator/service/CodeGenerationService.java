@@ -175,8 +175,8 @@ public class CodeGenerationService {
      * Sets up required directories for code generation
      */
     private Path setupDirectories(String generationId) throws IOException {
-        Path outputBaseDir = Paths.get(config.getOutputBaseDir());
-        Path tempDir = Paths.get(config.getTempDir());
+        Path outputBaseDir = Paths.get(config.getDirectories().getOutputBase());
+        Path tempDir = Paths.get(config.getDirectories().getTemp());
         Path outputDir = outputBaseDir.resolve(generationId);
 
         fileOpsService.createDirectory(outputBaseDir);
@@ -190,7 +190,7 @@ public class CodeGenerationService {
      * Downloads and validates OpenAPI specification
      */
     private Path downloadSpecification(CodeGenerationRequest request, List<String> messages) {
-        Path tempDir = Paths.get(config.getTempDir());
+        Path tempDir = Paths.get(config.getDirectories().getTemp());
         Path specPath = tempDir.resolve("openapi-spec-" + UUID.randomUUID() + ".yaml");
 
         // Use new method that handles URL, raw content, or file upload
@@ -259,7 +259,7 @@ public class CodeGenerationService {
      * Creates ZIP archive of the project
      */
     private Path createArchive(Path projectDir, String generationId, String artifactId) throws IOException {
-        Path outputBaseDir = Paths.get(config.getOutputBaseDir());
+        Path outputBaseDir = Paths.get(config.getDirectories().getOutputBase());
         Path archivePath = outputBaseDir.resolve(generationId + "/" + artifactId + ".zip");
 
         return fileOpsService.createArchive(projectDir, archivePath);
@@ -270,7 +270,7 @@ public class CodeGenerationService {
      */
     private void cleanupTempFiles() {
         try {
-            Path tempDir = Paths.get(config.getTempDir());
+            Path tempDir = Paths.get(config.getDirectories().getTemp());
             if (Files.exists(tempDir)) {
                 Files.list(tempDir)
                         .filter(path -> path.getFileName().toString().startsWith("openapi-spec-"))
@@ -291,9 +291,9 @@ public class CodeGenerationService {
      * Performs scheduled cleanup of old generated projects
      */
     public void scheduledCleanup() {
-        if (config.getCleanupHours() > 0) {
-            Path outputBaseDir = Paths.get(config.getOutputBaseDir());
-            fileOpsService.cleanupOldProjects(outputBaseDir, config.getCleanupHours());
+        if (config.getCleanup().getHours() > 0) {
+            Path outputBaseDir = Paths.get(config.getDirectories().getOutputBase());
+            fileOpsService.cleanupOldProjects(outputBaseDir, config.getCleanup().getHours());
         }
     }
 }

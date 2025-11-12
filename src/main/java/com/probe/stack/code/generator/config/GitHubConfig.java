@@ -9,12 +9,12 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Configuration properties for GitHub integration
- * Maps to probestack.github.* properties in application.yml
+ * Maps to probe.stack.generator.github.* properties in application.yaml
  */
 @Data
 @Validated
 @Configuration
-@ConfigurationProperties(prefix = "probestack.github")
+@ConfigurationProperties(prefix = "probe.stack.generator.github")
 public class GitHubConfig {
 
     /**
@@ -90,6 +90,6 @@ public class GitHubConfig {
          * Recommended to use environment variable: ${github_personal_access_token}
          */
         @NotBlank
-        private String accesstoken;
+        private String accessToken;
     }
 }

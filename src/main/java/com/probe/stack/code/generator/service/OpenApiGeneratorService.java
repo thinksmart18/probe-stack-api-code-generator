@@ -39,13 +39,13 @@ public class OpenApiGeneratorService {
             
             // Basic configuration
             configurator.setInputSpec(specPath.toString());
-            configurator.setGeneratorName(config.getGenerator().getLanguage());
-            configurator.setLibrary(config.getGenerator().getLibrary());
+            configurator.setGeneratorName(config.getOpenapi().getGenerator().getLanguage());
+            configurator.setLibrary(config.getOpenapi().getGenerator().getLibrary());
             configurator.setOutputDir(outputDir.toString());
-            
+
             // Package configuration
-            String apiPackage = request.getBasePackage() + "." + config.getGenerator().getApiPackageSuffix();
-            String modelPackage = request.getBasePackage() + "." + config.getGenerator().getModelPackageSuffix();
+            String apiPackage = request.getBasePackage() + "." + config.getOpenapi().getGenerator().getApiPackageSuffix();
+            String modelPackage = request.getBasePackage() + "." + config.getOpenapi().getGenerator().getModelPackageSuffix();
             String invokerPackage = request.getBasePackage();
             
             configurator.setApiPackage(apiPackage);
