@@ -86,6 +86,6 @@ probestack:
       commit:
         message: "Initial Commit: Generated {app_name}"
     personal:
-      accesstoken: "${personal_access_token}"
+      accesstoken: "${github_personal_access_token}"
 
 # application.yml
