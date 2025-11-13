@@ -58,58 +58,43 @@ public class CodeGenerationResponse {
     private String errorMessage;
 
     /**
-     * GitHub repository information if pushed
+     * Repository URL
      */
-    private GitHubRepositoryInfo gitHubRepositoryInfo;
+    private String repositoryUrl;
+
+    /**
+     * Clone URL (HTTPS)
+     */
+    private String cloneUrl;
+
+    /**
+     * SSH URL
+     */
+    private String sshUrl;
+
+    /**
+     * Repository full name (org/repo)
+     */
+    private String fullName;
+
+    /**
+     * Initial commit SHA
+     */
+    private String commitSha;
+
+    /**
+     * Branch name
+     */
+    private String branchName;
+
+    /**
+     * Whether push was successful
+     */
+    private boolean pushSuccessful;
 
     public enum GenerationStatus {
         SUCCESS,
         PARTIAL_SUCCESS,
         FAILED
-    }
-
-    /**
-     * GitHub repository information
-     */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class GitHubRepositoryInfo {
-
-        /**
-         * Repository URL
-         */
-        private String repositoryUrl;
-
-        /**
-         * Clone URL (HTTPS)
-         */
-        private String cloneUrl;
-
-        /**
-         * SSH URL
-         */
-        private String sshUrl;
-
-        /**
-         * Repository full name (org/repo)
-         */
-        private String fullName;
-
-        /**
-         * Initial commit SHA
-         */
-        private String commitSha;
-
-        /**
-         * Branch name
-         */
-        private String branchName;
-
-        /**
-         * Whether push was successful
-         */
-        private boolean pushSuccessful;
     }
 }

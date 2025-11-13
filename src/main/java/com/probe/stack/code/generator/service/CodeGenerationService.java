@@ -94,7 +94,7 @@ public class CodeGenerationService {
             }
 
             // Step 8: Push to GitHub if enabled (NEW)
-            CodeGenerationResponse.GitHubRepositoryInfo githubInfo = createRepoAndPushCode(request, projectDir, messages);
+            CodeGenerationResponse githubInfo = createRepoAndPushCode(request, projectDir, messages);
 
             // Cleanup temporary files
             cleanupTempFiles();
@@ -102,16 +102,27 @@ public class CodeGenerationService {
             log.info("Code generation completed successfully - ID: {}", generationId);
 
             // create response
-            return CodeGenerationResponse.builder()
+            CodeGenerationResponse.CodeGenerationResponseBuilder builder = CodeGenerationResponse.builder()
                     .generationId(generationId)
                     .projectPath(projectDir.toString())
                   //  .archivePath(archivePath != null ? archivePath.toString() : null)
                     .status(CodeGenerationResponse.GenerationStatus.SUCCESS)
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(LocalDateTime.now());
                    // .generatedFiles(generatedFiles)
                    // .messages(messages)
-                    .gitHubRepositoryInfo(githubInfo) // NEW: Include GitHub info
-                    .build();
+
+            // Include GitHub info if available
+            if (githubInfo != null) {
+                builder.repositoryUrl(githubInfo.getRepositoryUrl())
+                       .cloneUrl(githubInfo.getCloneUrl())
+                       .sshUrl(githubInfo.getSshUrl())
+                       .fullName(githubInfo.getFullName())
+                       .commitSha(githubInfo.getCommitSha())
+                       .branchName(githubInfo.getBranchName())
+                       .pushSuccessful(githubInfo.isPushSuccessful());
+            }
+
+            return builder.build();
 
         } catch (Exception e) {
             log.error("Code generation failed - ID: {}", generationId, e);
@@ -133,8 +144,8 @@ public class CodeGenerationService {
         codeGenerationOrchestrator.generateAllArtifacts(generatedProjectControllerFiles, projectDir.toString(), request.getBasePackage(),outputPathForServiceAndRepoClasses);
     }
 
-    private CodeGenerationResponse.GitHubRepositoryInfo createRepoAndPushCode(CodeGenerationRequest request, Path projectDir, List<String> messages) {
-        CodeGenerationResponse.GitHubRepositoryInfo githubInfo = null;
+    private CodeGenerationResponse createRepoAndPushCode(CodeGenerationRequest request, Path projectDir, List<String> messages) {
+        CodeGenerationResponse githubInfo = null;
         if (githubPropertiesConfig != null && githubPropertiesConfig.getPush().isEnabled()) {
             try {
                 log.info("GitHub integration enabled, pushing to repository");

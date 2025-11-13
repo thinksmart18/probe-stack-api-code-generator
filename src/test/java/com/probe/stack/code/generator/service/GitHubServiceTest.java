@@ -48,7 +48,7 @@ class GitHubServiceTest {
                 .build();
 
         // Act
-        CodeGenerationResponse.GitHubRepositoryInfo result =
+        CodeGenerationResponse result =
                 gitHubService.createAndPushToGitHub(projectDir, request);
 
         // Assert
@@ -71,7 +71,7 @@ class GitHubServiceTest {
                 .build();
 
         // Act
-        CodeGenerationResponse.GitHubRepositoryInfo result =
+        CodeGenerationResponse result =
                 gitHubService.createAndPushToGitHub(projectDir, request);
 
         // Assert
@@ -235,8 +235,8 @@ class GitHubServiceTest {
     @Test
     void testGitHubRepositoryInfo_AllFieldsSet() {
         // Arrange & Act
-        CodeGenerationResponse.GitHubRepositoryInfo info =
-                CodeGenerationResponse.GitHubRepositoryInfo.builder()
+        CodeGenerationResponse response =
+                CodeGenerationResponse.builder()
                         .repositoryUrl("https://github.com/test-org/test-repo")
                         .cloneUrl("https://github.com/test-org/test-repo.git")
                         .sshUrl("git@github.com:test-org/test-repo.git")
@@ -247,14 +247,14 @@ class GitHubServiceTest {
                         .build();
 
         // Assert
-        assertNotNull(info);
-        assertEquals("https://github.com/test-org/test-repo", info.getRepositoryUrl());
-        assertEquals("https://github.com/test-org/test-repo.git", info.getCloneUrl());
-        assertEquals("git@github.com:test-org/test-repo.git", info.getSshUrl());
-        assertEquals("test-org/test-repo", info.getFullName());
-        assertEquals("abc123def456", info.getCommitSha());
-        assertEquals("main", info.getBranchName());
-        assertTrue(info.isPushSuccessful());
+        assertNotNull(response);
+        assertEquals("https://github.com/test-org/test-repo", response.getRepositoryUrl());
+        assertEquals("https://github.com/test-org/test-repo.git", response.getCloneUrl());
+        assertEquals("git@github.com:test-org/test-repo.git", response.getSshUrl());
+        assertEquals("test-org/test-repo", response.getFullName());
+        assertEquals("abc123def456", response.getCommitSha());
+        assertEquals("main", response.getBranchName());
+        assertTrue(response.isPushSuccessful());
     }
 
     @Test
