@@ -2,8 +2,8 @@ package com.probe.stack.code.generator.service;
 
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -17,13 +17,13 @@ import java.util.regex.Pattern;
 /**
  * Service for processing templates and replacing placeholders
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class TemplateProcessingService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(TemplateProcessingService.class);
+
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
-    
+
     /**
      * Replaces placeholders in all files within the project directory
      *

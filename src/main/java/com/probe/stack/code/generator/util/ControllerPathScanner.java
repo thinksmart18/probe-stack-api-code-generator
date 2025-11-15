@@ -1,7 +1,8 @@
 package com.probe.stack.code.generator.util;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -20,9 +21,10 @@ import java.util.stream.Stream;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
 public class ControllerPathScanner {
+
+    private static final Logger log = LoggerFactory.getLogger(ControllerPathScanner.class);
 
     private static final String SRC_MAIN_JAVA = "src/main/java";
     private static final String CONTROLLER_SUFFIX = "Controller.java";

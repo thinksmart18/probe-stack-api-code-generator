@@ -4,7 +4,8 @@ import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.Control
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.MethodMetadata;
 import com.probe.stack.code.generator.parser.ControllerMetadataExtractor.ParameterMetadata;
 import com.squareup.javapoet.*;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +20,10 @@ import java.util.*;
  *
  * @author ProbeStack
  */
-@Slf4j
 @Component
 public class ServiceClassGenerator {
+
+    private static final Logger log = LoggerFactory.getLogger(ServiceClassGenerator.class);
 
     /**
      * Generates a service class for the given controller metadata.
