@@ -33,11 +33,13 @@ public class CodeGenerationOrchestrator {
     private final ControllerPathScanner controllerLocator;
 
     @Autowired
-    public CodeGenerationOrchestrator(ControllerMetadataExtractor metadataExtractor,
-                                     ServiceClassGenerator serviceGenerator,
-                                     RepositoryInterfaceGenerator repositoryGenerator,
-                                     ExistingControllerEnhancer controllerEnhancer,
-                                     ControllerPathScanner controllerLocator) {
+    public CodeGenerationOrchestrator(
+            ControllerMetadataExtractor metadataExtractor,
+            ServiceClassGenerator serviceGenerator,
+            RepositoryInterfaceGenerator repositoryGenerator,
+            ExistingControllerEnhancer controllerEnhancer,
+            ControllerPathScanner controllerLocator
+    ) {
         this.metadataExtractor = metadataExtractor;
         this.serviceGenerator = serviceGenerator;
         this.repositoryGenerator = repositoryGenerator;

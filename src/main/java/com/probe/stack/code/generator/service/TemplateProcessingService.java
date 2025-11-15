@@ -21,9 +21,8 @@ import java.util.regex.Pattern;
 public class TemplateProcessingService {
 
     private static final Logger log = LoggerFactory.getLogger(TemplateProcessingService.class);
-
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
-
+    
     /**
      * Replaces placeholders in all files within the project directory
      *

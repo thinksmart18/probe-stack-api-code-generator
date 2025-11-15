@@ -27,7 +27,7 @@ public class PropertiesMergeService {
     public PropertiesMergeService(CodeGeneratorConfig config) {
         this.config = config;
     }
-
+    
     /**
      * Merges additional properties into application.properties
      *

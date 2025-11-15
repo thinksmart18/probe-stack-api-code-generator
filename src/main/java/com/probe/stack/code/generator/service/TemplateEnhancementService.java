@@ -32,9 +32,9 @@ public class TemplateEnhancementService {
 
     @Autowired
     public TemplateEnhancementService(CodeGeneratorConfig config,
-                                       PomCustomizationService pomCustomizationService,
-                                       PropertiesMergeService propertiesMergeService,
-                                       TemplateProcessingService templateProcessingService) {
+                                      PomCustomizationService pomCustomizationService,
+                                      PropertiesMergeService propertiesMergeService,
+                                      TemplateProcessingService templateProcessingService) {
         this.config = config;
         this.pomCustomizationService = pomCustomizationService;
         this.propertiesMergeService = propertiesMergeService;
@@ -51,11 +51,11 @@ public class TemplateEnhancementService {
     public List<String> enhanceProject(Path projectDir, CodeGenerationRequest request) {
         log.info("Starting project enhancement with templates");
         log.info("Project directory: {}", projectDir);
-        log.info("Template config directory: {}", config.getDirectories().getTemplateConfig());
+        log.info("Template config directory: {}", config.getTemplateConfigDir());
 
         List<String> messages = new ArrayList<>();
 
-        Path templateDir = Paths.get(config.getDirectories().getTemplateConfig());
+        Path templateDir = Paths.get(config.getTemplateConfigDir());
 
         if (!Files.exists(templateDir)) {
             log.warn("Template directory not found: {}", templateDir);
@@ -374,7 +374,7 @@ public class TemplateEnhancementService {
      * @return true if valid structure exists
      */
     public boolean validateTemplateStructure() {
-        Path templateDir = Paths.get(config.getDirectories().getTemplateConfig());
+        Path templateDir = Paths.get(config.getTemplateConfigDir());
 
         if (!Files.exists(templateDir)) {
             log.warn("Template directory does not exist: {}", templateDir);

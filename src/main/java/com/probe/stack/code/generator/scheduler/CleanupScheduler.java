@@ -9,25 +9,22 @@ import org.springframework.stereotype.Component;
 
 /**
  * Scheduler for periodic cleanup of old generated projects
- * The cron expression is configured via probe.stack.generator.cleanup.cron
  */
 @Component
 public class CleanupScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(CleanupScheduler.class);
-
     private final CodeGenerationService codeGenerationService;
 
     @Autowired
     public CleanupScheduler(CodeGenerationService codeGenerationService) {
         this.codeGenerationService = codeGenerationService;
     }
-
+    
     /**
-     * Runs cleanup based on configured cron expression
-     * Default: every hour at minute 0 (0 0 * * * *)
+     * Runs cleanup every hour
      */
-    @Scheduled(cron = "${probe.stack.generator.cleanup.cron:0 0 * * * *}")
+    @Scheduled(cron = "0 0 * * * *")
     public void cleanupOldProjects() {
         log.info("Starting scheduled cleanup of old projects");
         codeGenerationService.scheduledCleanup();

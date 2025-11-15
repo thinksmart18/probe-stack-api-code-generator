@@ -26,7 +26,6 @@ import java.util.*;
 public class ControllerMetadataExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(ControllerMetadataExtractor.class);
-
     private final JavaParser javaParser = new JavaParser();
 
     public ControllerMetadata extractMetadata(File controllerFile) throws Exception {
@@ -498,24 +497,24 @@ public class ControllerMetadataExtractor {
             return isRequestBody;
         }
 
-        public void setRequestBody(boolean isRequestBody) {
-            this.isRequestBody = isRequestBody;
+        public void setRequestBody(boolean requestBody) {
+            isRequestBody = requestBody;
         }
 
         public boolean isPathVariable() {
             return isPathVariable;
         }
 
-        public void setPathVariable(boolean isPathVariable) {
-            this.isPathVariable = isPathVariable;
+        public void setPathVariable(boolean pathVariable) {
+            isPathVariable = pathVariable;
         }
 
         public boolean isRequestParam() {
             return isRequestParam;
         }
 
-        public void setRequestParam(boolean isRequestParam) {
-            this.isRequestParam = isRequestParam;
+        public void setRequestParam(boolean requestParam) {
+            isRequestParam = requestParam;
         }
     }
 }

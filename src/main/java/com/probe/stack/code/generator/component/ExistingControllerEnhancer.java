@@ -34,7 +34,6 @@ import java.util.*;
 public class ExistingControllerEnhancer {
 
     private static final Logger log = LoggerFactory.getLogger(ExistingControllerEnhancer.class);
-
     private final JavaParser javaParser = new JavaParser();
 
     /**

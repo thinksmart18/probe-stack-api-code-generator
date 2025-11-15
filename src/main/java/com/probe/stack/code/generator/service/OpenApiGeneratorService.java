@@ -4,11 +4,11 @@ import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import org.openapitools.codegen.ClientOptInput;
-import org.openapitools.codegen.DefaultGenerator;
-import org.openapitools.codegen.config.CodegenConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.openapitools.codegen.DefaultGenerator;
+import org.openapitools.codegen.config.CodegenConfigurator;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -28,7 +28,7 @@ public class OpenApiGeneratorService {
     public OpenApiGeneratorService(CodeGeneratorConfig config) {
         this.config = config;
     }
-
+    
     /**
      * Generates Spring Boot project from OpenAPI specification
      *
@@ -45,13 +45,13 @@ public class OpenApiGeneratorService {
             
             // Basic configuration
             configurator.setInputSpec(specPath.toString());
-            configurator.setGeneratorName(config.getOpenapi().getGenerator().getLanguage());
-            configurator.setLibrary(config.getOpenapi().getGenerator().getLibrary());
+            configurator.setGeneratorName(config.getGenerator().getLanguage());
+            configurator.setLibrary(config.getGenerator().getLibrary());
             configurator.setOutputDir(outputDir.toString());
-
+            
             // Package configuration
-            String apiPackage = request.getBasePackage() + "." + config.getOpenapi().getGenerator().getApiPackageSuffix();
-            String modelPackage = request.getBasePackage() + "." + config.getOpenapi().getGenerator().getModelPackageSuffix();
+            String apiPackage = request.getBasePackage() + "." + config.getGenerator().getApiPackageSuffix();
+            String modelPackage = request.getBasePackage() + "." + config.getGenerator().getModelPackageSuffix();
             String invokerPackage = request.getBasePackage();
             
             configurator.setApiPackage(apiPackage);

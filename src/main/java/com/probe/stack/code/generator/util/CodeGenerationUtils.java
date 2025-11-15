@@ -8,19 +8,20 @@ import java.util.regex.Pattern;
 /**
  * Utility class for code generation operations
  */
-public final class CodeGenerationUtils {
+public class CodeGenerationUtils {
 
     private static final Logger log = LoggerFactory.getLogger(CodeGenerationUtils.class);
 
     private static final Pattern PACKAGE_PATTERN =
         Pattern.compile("^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$");
 
-    private static final Pattern ARTIFACT_PATTERN =
-        Pattern.compile("^[a-z][a-z0-9-]*$");
-
+    // Private constructor to prevent instantiation
     private CodeGenerationUtils() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }
+    
+    private static final Pattern ARTIFACT_PATTERN = 
+        Pattern.compile("^[a-z][a-z0-9-]*$");
     
     /**
      * Validates a Java package name

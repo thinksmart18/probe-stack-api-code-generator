@@ -3,11 +3,11 @@ package com.probe.stack.code.generator.service;
 import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import org.apache.maven.model.*;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -30,7 +30,7 @@ public class PomMergeService {
     public PomMergeService(CodeGeneratorConfig config) {
         this.config = config;
     }
-
+    
     /**
      * Merges additional properties, dependencies, and plugins into generated pom.xml
      *

@@ -1,11 +1,9 @@
 package com.probe.stack.code.generator.service;
 
-import com.probe.stack.code.generator.config.CodeGeneratorConfig;
 import com.probe.stack.code.generator.dto.CodeGenerationRequest;
 import com.probe.stack.code.generator.exception.CodeGenerationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -25,13 +23,6 @@ import java.nio.file.StandardCopyOption;
 public class SpecificationDownloadService {
 
     private static final Logger log = LoggerFactory.getLogger(SpecificationDownloadService.class);
-
-    private final CodeGeneratorConfig config;
-
-    @Autowired
-    public SpecificationDownloadService(CodeGeneratorConfig config) {
-        this.config = config;
-    }
 
     /**
      * Gets OpenAPI specification and saves it to a file
@@ -100,8 +91,8 @@ public class SpecificationDownloadService {
 
             // Set headers
             connection.setRequestMethod("GET");
-            connection.setConnectTimeout(config.getHttp().getConnectTimeoutMs());
-            connection.setReadTimeout(config.getHttp().getReadTimeoutMs());
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
 
             // Add GitHub token if provided
             if (githubToken != null && !githubToken.isEmpty()) {
@@ -109,7 +100,7 @@ public class SpecificationDownloadService {
             }
 
             // Set User-Agent
-            connection.setRequestProperty("User-Agent", config.getHttp().getUserAgent());
+            connection.setRequestProperty("User-Agent", "OpenAPI-Code-Generator/1.0");
 
             int responseCode = connection.getResponseCode();
 

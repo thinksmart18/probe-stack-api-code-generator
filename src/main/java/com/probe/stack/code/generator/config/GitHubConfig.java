@@ -8,11 +8,11 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Configuration properties for GitHub integration
- * Maps to probe.stack.generator.github.* properties in application.yaml
+ * Maps to probestack.github.* properties in application.yml
  */
 @Validated
 @Configuration
-@ConfigurationProperties(prefix = "probe.stack.generator.github")
+@ConfigurationProperties(prefix = "probestack.github")
 public class GitHubConfig {
 
     /**
@@ -38,6 +38,7 @@ public class GitHubConfig {
      */
     private PersonalConfig personal = new PersonalConfig();
 
+    // Getters and Setters
     public String getVersion() {
         return version;
     }
@@ -156,14 +157,14 @@ public class GitHubConfig {
          * Recommended to use environment variable: ${github_personal_access_token}
          */
         @NotBlank
-        private String accessToken;
+        private String accesstoken;
 
-        public String getAccessToken() {
-            return accessToken;
+        public String getAccesstoken() {
+            return accesstoken;
         }
 
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
+        public void setAccesstoken(String accesstoken) {
+            this.accesstoken = accesstoken;
         }
     }
 }
