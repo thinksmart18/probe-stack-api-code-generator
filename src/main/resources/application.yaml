@@ -1,0 +1,166 @@
+# Probe Stack API Code Generator - Unified Configuration
+# All configuration properties use the prefix: probe.stack.generator
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: probe-stack-api-code-generator
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+
+# =============================================================================
+# PROBE STACK GENERATOR CONFIGURATION
+# All application settings are under this unified prefix
+# =============================================================================
+probe:
+  stack:
+    generator:
+      # -----------------------------------------------------------------------
+      # Directory Configuration
+      # -----------------------------------------------------------------------
+      directories:
+        # Base directory for generated projects
+        output-base: ${CODEGEN_OUTPUT_DIR:./generated-projects}
+        # Template configuration directory structure
+        template-config: ${CODEGEN_TEMPLATE_DIR:./codegen_config}
+        # Temporary directory for downloads
+        temp: ${CODEGEN_TEMP_DIR:./temp}
+
+      # -----------------------------------------------------------------------
+      # Cleanup Configuration
+      # -----------------------------------------------------------------------
+      cleanup:
+        # Cleanup generated files after specified hours (0 = no cleanup)
+        hours: ${CODEGEN_CLEANUP_HOURS:24}
+        # Cron expression for cleanup scheduler (default: every hour at minute 0)
+        cron: "0 0 * * * *"
+
+      # -----------------------------------------------------------------------
+      # Template Configuration
+      # Template paths are relative to directories.template-config
+      # -----------------------------------------------------------------------
+      templates:
+        java-source-dir: java_code/src/main/java
+        resources-dir: java_code/src/main/resources
+        pom-template: maven_config
+
+      # -----------------------------------------------------------------------
+      # OpenAPI Generator Configuration
+      # -----------------------------------------------------------------------
+      openapi:
+        generator:
+          language: spring
+          library: spring-boot
+          api-package-suffix: api
+          model-package-suffix: model
+
+      # -----------------------------------------------------------------------
+      # HTTP Client Configuration
+      # -----------------------------------------------------------------------
+      http:
+        connect-timeout-ms: 30000
+        read-timeout-ms: 30000
+        user-agent: OpenAPI-Code-Generator/1.0
+
+      # -----------------------------------------------------------------------
+      # File Configuration
+      # -----------------------------------------------------------------------
+      files:
+        default-archive-name: generated-project.zip
+        text-file-extensions:
+          - .java
+          - .xml
+          - .properties
+          - .yml
+          - .yaml
+          - .md
+          - .txt
+          - dockerfile
+          - .openapi-generator-ignore
+
+      # -----------------------------------------------------------------------
+      # Project Size Estimation Configuration
+      # -----------------------------------------------------------------------
+      estimation:
+        # Base project size in MB
+        base-size-mb: 5.0
+        # Size per endpoint in MB
+        per-endpoint-size-mb: 0.05
+
+      # -----------------------------------------------------------------------
+      # Default POM Configuration (Fallback)
+      # Used if template files don't exist
+      # -----------------------------------------------------------------------
+      pom:
+        properties:
+          maven.compiler.source: 17
+          maven.compiler.target: 17
+          springdoc-openapi.version: 2.3.0
+        dependencies:
+          - groupId: org.springdoc
+            artifactId: springdoc-openapi-starter-webmvc-ui
+            version: ${springdoc-openapi.version}
+          - groupId: org.springframework.boot
+            artifactId: spring-boot-starter-validation
+
+      # -----------------------------------------------------------------------
+      # Default Application Properties (Fallback)
+      # Merged into generated projects
+      # -----------------------------------------------------------------------
+      application-properties:
+        server.port: 8080
+        spring.application.name: generated-service
+        springdoc.api-docs.path: /api-docs
+        springdoc.swagger-ui.path: /swagger-ui.html
+
+      # -----------------------------------------------------------------------
+      # Generated Documentation Configuration
+      # -----------------------------------------------------------------------
+      documentation:
+        readme:
+          # Port shown in README for local development
+          local-port: 8080
+          # Swagger UI path shown in README
+          swagger-ui-path: /swagger-ui.html
+          # API docs path shown in README
+          api-docs-path: /api-docs
+
+      # -----------------------------------------------------------------------
+      # GitHub Integration Configuration
+      # -----------------------------------------------------------------------
+      github:
+        version: 1.0.0
+        description: Generated Spring Boot application from OpenAPI specification
+        push:
+          # Flag to enable/disable automatic push to GitHub
+          enabled: true
+        config:
+          # Flag to determine if the repository should be private
+          is-private: true
+          commit:
+            # Commit message template (supports placeholders like {app_name})
+            message: "Initial Commit: Generated {app_name}"
+        personal:
+          # GitHub personal access token (use environment variable)
+          access-token: "${github_personal_access_token}"
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    com.probe.stack.code.generator: DEBUG
+    org.openapitools: INFO
+    org.eclipse.jgit: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: ./logs/codegen.log
