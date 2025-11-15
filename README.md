@@ -4,6 +4,7 @@ A Spring Boot microservice that automates the generation of complete Spring Boot
 
 ## Features
 
+### Core Code Generation
 - **OpenAPI Code Generation**: Generates Spring Boot projects from OpenAPI 3.0 specifications
 - **Service Layer Generation**: Automatically creates service and repository classes for MongoDB
 - **Customizable Templates**: Copy additional Java code and configuration files from templates
@@ -15,10 +16,23 @@ A Spring Boot microservice that automates the generation of complete Spring Boot
 - **File Upload Support**: Upload OpenAPI specs directly or provide URLs
 - **Automatic Cleanup**: Scheduled cleanup of old generated projects
 
+### Smart Agent Functionality ⭐ NEW
+- **Automatic Request Tracking**: All code generation requests are automatically persisted to MongoDB
+- **Intelligent Upsert Logic**: Detects duplicate requests and updates existing records
+- **Comprehensive Audit Trail**: Maintains complete history with timestamps and status tracking
+- **Request Lifecycle Management**: Tracks requests from creation through completion
+- **Robust Exception Handling**: Detailed error tracking and logging for troubleshooting
+- **Request Reprocessing**: Enables retry mechanisms for failed requests
+- **Query APIs**: REST endpoints for retrieving request status and history
+- **Soft Delete (Archive)**: Archive old requests while maintaining audit compliance
+
+📖 **[View Complete Smart Agent Documentation](./SMART_AGENT_DOCUMENTATION.md)**
+
 ## Prerequisites
 
 - Java 17 or higher
 - Maven 3.6+
+- MongoDB 4.0+ (for Smart Agent request tracking)
 - 2GB RAM minimum
 
 ## Quick Start

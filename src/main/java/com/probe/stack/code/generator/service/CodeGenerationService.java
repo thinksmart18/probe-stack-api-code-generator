@@ -47,6 +47,7 @@ public class CodeGenerationService {
     private final CodeGenerationOrchestrator codeGenerationOrchestrator;
     private final ControllerPathScanner controllerPathScanner;
     private final ControllerMetadataExtractor controllerMetadataExtractor;
+    private final SmartAgentService smartAgentService;
 
     @Autowired
     public CodeGenerationService(CodeGeneratorConfig config,
@@ -63,7 +64,8 @@ public class CodeGenerationService {
                                  GitHubConfig githubPropertiesConfig,
                                  CodeGenerationOrchestrator codeGenerationOrchestrator,
                                  ControllerPathScanner controllerPathScanner,
-                                 ControllerMetadataExtractor controllerMetadataExtractor) {
+                                 ControllerMetadataExtractor controllerMetadataExtractor,
+                                 SmartAgentService smartAgentService) {
         this.config = config;
         this.specDownloadService = specDownloadService;
         this.generatorService = generatorService;
@@ -79,10 +81,19 @@ public class CodeGenerationService {
         this.codeGenerationOrchestrator = codeGenerationOrchestrator;
         this.controllerPathScanner = controllerPathScanner;
         this.controllerMetadataExtractor = controllerMetadataExtractor;
+        this.smartAgentService = smartAgentService;
     }
 
     /**
-     * Generates Spring Boot project from OpenAPI specification
+     * Generates Spring Boot project from OpenAPI specification.
+     * Enhanced with Smart Agent functionality for request persistence and tracking.
+     *
+     * Smart Agent Features:
+     * - Persists request to MongoDB before generation starts
+     * - Checks for duplicate/existing requests and updates them if found
+     * - Updates request with generation results upon completion
+     * - Maintains comprehensive audit trail with timestamps
+     * - Enables request reprocessing and tracking
      *
      * @param request Code generation request
      * @return Code generation response with project details
@@ -97,6 +108,11 @@ public class CodeGenerationService {
         Path archivePath = null;
 
         try {
+            // SMART AGENT: Persist request to MongoDB before starting generation
+            // This enables tracking, duplicate detection, and audit trails
+            log.info("Smart Agent: Persisting request to MongoDB for tracking");
+            smartAgentService.saveOrUpdateRequest(request, generationId);
+            log.info("Smart Agent: Request successfully persisted with generationId: {}", generationId);
             // Step 1: Setup directories
             Path outputDir = setupDirectories(generationId);
             projectDir = outputDir.resolve(request.getArtifactId());
@@ -156,12 +172,20 @@ public class CodeGenerationService {
                        .pushSuccessful(githubInfo.isPushSuccessful());
             }
 
-            return builder.build();
+            CodeGenerationResponse response = builder.build();
+
+            // SMART AGENT: Update request in MongoDB with generation results
+            // This completes the request lifecycle and stores all generation metadata
+            log.info("Smart Agent: Updating request with generation results");
+            smartAgentService.updateWithResponse(generationId, response);
+            log.info("Smart Agent: Request updated successfully with completion status");
+
+            return response;
 
         } catch (Exception e) {
             log.error("Code generation failed - ID: {}", generationId, e);
 
-            return CodeGenerationResponse.builder()
+            CodeGenerationResponse errorResponse = CodeGenerationResponse.builder()
                     .generationId(generationId)
                     .projectPath(projectDir != null ? projectDir.toString() : null)
                     .status(CodeGenerationResponse.GenerationStatus.FAILED)
@@ -169,6 +193,20 @@ public class CodeGenerationService {
                     .messages(messages)
                     .errorMessage(e.getMessage())
                     .build();
+
+            // SMART AGENT: Update request in MongoDB with failure information
+            // This ensures failed requests are tracked for troubleshooting and retry
+            try {
+                log.info("Smart Agent: Updating request with failure information");
+                smartAgentService.updateWithResponse(generationId, errorResponse);
+                log.info("Smart Agent: Failure information persisted successfully");
+            } catch (Exception smartAgentException) {
+                // Log but don't throw - we already have a primary error
+                log.error("Smart Agent: Failed to persist error information for generationId: {}",
+                        generationId, smartAgentException);
+            }
+
+            return errorResponse;
         }
     }
 
