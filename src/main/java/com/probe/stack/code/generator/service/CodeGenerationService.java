@@ -46,6 +46,7 @@ public class CodeGenerationService {
     private final CodeGenerationOrchestrator codeGenerationOrchestrator;
     private final ControllerPathScanner controllerPathScanner;
     private final ControllerMetadataExtractor controllerMetadataExtractor;
+    private final MicroserviceEnhancementService microserviceEnhancementService;
 
     /**
      * Generates Spring Boot project from OpenAPI specification
@@ -75,11 +76,17 @@ public class CodeGenerationService {
             messages.add(String.format("Generated %d files from OpenAPI spec", generatedFiles.size()));
 
             // Step 4: Enhance project with templates
-            List<String> enhancementMessages = templateEnhancementService.enhanceProject(projectDir, request);
-            messages.addAll(enhancementMessages);
+            List<String> templateMessages = templateEnhancementService.enhanceProject(projectDir, request);
+            messages.addAll(templateMessages);
 
             // Generate Service and Repository classes
             generateServiceAndRepositoryClasses(request, projectDir);
+
+            // Step 4.5: Perform comprehensive microservice enhancement
+            log.info("Starting microservice enhancement...");
+            List<String> enhancementMessages = microserviceEnhancementService.enhanceMicroservice(projectDir, request);
+            messages.addAll(enhancementMessages);
+            log.info("Microservice enhancement completed");
 
             // Step 5: Update .openapi-generator-ignore
             updateGeneratorIgnoreFile(projectDir, messages);
