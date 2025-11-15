@@ -45,9 +45,9 @@ public class GitHubService {
      *
      * @param projectDir Path to the generated project
      * @param request Code generation request with GitHub config
-     * @return GitHub repository information
+     * @return Code generation response with GitHub repository information
      */
-    public CodeGenerationResponse.GitHubRepositoryInfo createAndPushToGitHub(
+    public CodeGenerationResponse createAndPushToGitHub(
             Path projectDir, CodeGenerationRequest request) {
 
         if (githubPropertiesConfig == null || !githubPropertiesConfig.getPush().isEnabled()) {
@@ -304,11 +304,11 @@ public class GitHubService {
     /**
      * Builds GitHub repository information for response
      */
-    private CodeGenerationResponse.GitHubRepositoryInfo buildGitHubRepositoryInfo(
+    private CodeGenerationResponse buildGitHubRepositoryInfo(
             GHRepository repository, String commitSha, CodeGenerationRequest request)
             throws IOException {
 
-        return CodeGenerationResponse.GitHubRepositoryInfo.builder()
+        return CodeGenerationResponse.builder()
                 .repositoryUrl(repository.getHtmlUrl().toString())
                 .cloneUrl(repository.getHttpTransportUrl())
                 .sshUrl(repository.getSshUrl())

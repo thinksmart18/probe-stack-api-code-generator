@@ -49,9 +49,39 @@ public class CodeGenerationResponse {
     private String errorMessage;
 
     /**
-     * GitHub repository information if pushed
+     * Repository URL
      */
-    private GitHubRepositoryInfo gitHubRepositoryInfo;
+    private String repositoryUrl;
+
+    /**
+     * Clone URL (HTTPS)
+     */
+    private String cloneUrl;
+
+    /**
+     * SSH URL
+     */
+    private String sshUrl;
+
+    /**
+     * Repository full name (org/repo)
+     */
+    private String fullName;
+
+    /**
+     * Initial commit SHA
+     */
+    private String commitSha;
+
+    /**
+     * Branch name
+     */
+    private String branchName;
+
+    /**
+     * Whether push was successful
+     */
+    private boolean pushSuccessful;
 
     // Constructors
     public CodeGenerationResponse() {
@@ -60,7 +90,9 @@ public class CodeGenerationResponse {
     public CodeGenerationResponse(String generationId, String projectPath, String archivePath,
                                    GenerationStatus status, LocalDateTime timestamp,
                                    List<String> generatedFiles, List<String> messages,
-                                   String errorMessage, GitHubRepositoryInfo gitHubRepositoryInfo) {
+                                   String errorMessage, String repositoryUrl, String cloneUrl,
+                                   String sshUrl, String fullName, String commitSha,
+                                   String branchName, boolean pushSuccessful) {
         this.generationId = generationId;
         this.projectPath = projectPath;
         this.archivePath = archivePath;
@@ -69,7 +101,13 @@ public class CodeGenerationResponse {
         this.generatedFiles = generatedFiles;
         this.messages = messages;
         this.errorMessage = errorMessage;
-        this.gitHubRepositoryInfo = gitHubRepositoryInfo;
+        this.repositoryUrl = repositoryUrl;
+        this.cloneUrl = cloneUrl;
+        this.sshUrl = sshUrl;
+        this.fullName = fullName;
+        this.commitSha = commitSha;
+        this.branchName = branchName;
+        this.pushSuccessful = pushSuccessful;
     }
 
     // Builder pattern (simplified)
@@ -86,7 +124,13 @@ public class CodeGenerationResponse {
         private List<String> generatedFiles;
         private List<String> messages;
         private String errorMessage;
-        private GitHubRepositoryInfo gitHubRepositoryInfo;
+        private String repositoryUrl;
+        private String cloneUrl;
+        private String sshUrl;
+        private String fullName;
+        private String commitSha;
+        private String branchName;
+        private boolean pushSuccessful;
 
         public Builder generationId(String generationId) {
             this.generationId = generationId;
@@ -128,14 +172,45 @@ public class CodeGenerationResponse {
             return this;
         }
 
-        public Builder gitHubRepositoryInfo(GitHubRepositoryInfo gitHubRepositoryInfo) {
-            this.gitHubRepositoryInfo = gitHubRepositoryInfo;
+        public Builder repositoryUrl(String repositoryUrl) {
+            this.repositoryUrl = repositoryUrl;
+            return this;
+        }
+
+        public Builder cloneUrl(String cloneUrl) {
+            this.cloneUrl = cloneUrl;
+            return this;
+        }
+
+        public Builder sshUrl(String sshUrl) {
+            this.sshUrl = sshUrl;
+            return this;
+        }
+
+        public Builder fullName(String fullName) {
+            this.fullName = fullName;
+            return this;
+        }
+
+        public Builder commitSha(String commitSha) {
+            this.commitSha = commitSha;
+            return this;
+        }
+
+        public Builder branchName(String branchName) {
+            this.branchName = branchName;
+            return this;
+        }
+
+        public Builder pushSuccessful(boolean pushSuccessful) {
+            this.pushSuccessful = pushSuccessful;
             return this;
         }
 
         public CodeGenerationResponse build() {
             return new CodeGenerationResponse(generationId, projectPath, archivePath, status,
-                    timestamp, generatedFiles, messages, errorMessage, gitHubRepositoryInfo);
+                    timestamp, generatedFiles, messages, errorMessage, repositoryUrl, cloneUrl,
+                    sshUrl, fullName, commitSha, branchName, pushSuccessful);
         }
     }
 
@@ -204,186 +279,65 @@ public class CodeGenerationResponse {
         this.errorMessage = errorMessage;
     }
 
-    public GitHubRepositoryInfo getGitHubRepositoryInfo() {
-        return gitHubRepositoryInfo;
+    public String getRepositoryUrl() {
+        return repositoryUrl;
     }
 
-    public void setGitHubRepositoryInfo(GitHubRepositoryInfo gitHubRepositoryInfo) {
-        this.gitHubRepositoryInfo = gitHubRepositoryInfo;
+    public void setRepositoryUrl(String repositoryUrl) {
+        this.repositoryUrl = repositoryUrl;
+    }
+
+    public String getCloneUrl() {
+        return cloneUrl;
+    }
+
+    public void setCloneUrl(String cloneUrl) {
+        this.cloneUrl = cloneUrl;
+    }
+
+    public String getSshUrl() {
+        return sshUrl;
+    }
+
+    public void setSshUrl(String sshUrl) {
+        this.sshUrl = sshUrl;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getCommitSha() {
+        return commitSha;
+    }
+
+    public void setCommitSha(String commitSha) {
+        this.commitSha = commitSha;
+    }
+
+    public String getBranchName() {
+        return branchName;
+    }
+
+    public void setBranchName(String branchName) {
+        this.branchName = branchName;
+    }
+
+    public boolean isPushSuccessful() {
+        return pushSuccessful;
+    }
+
+    public void setPushSuccessful(boolean pushSuccessful) {
+        this.pushSuccessful = pushSuccessful;
     }
 
     public enum GenerationStatus {
         SUCCESS,
         PARTIAL_SUCCESS,
         FAILED
-    }
-
-    /**
-     * GitHub repository information
-     */
-    public static class GitHubRepositoryInfo {
-
-        /**
-         * Repository URL
-         */
-        private String repositoryUrl;
-
-        /**
-         * Clone URL (HTTPS)
-         */
-        private String cloneUrl;
-
-        /**
-         * SSH URL
-         */
-        private String sshUrl;
-
-        /**
-         * Repository full name (org/repo)
-         */
-        private String fullName;
-
-        /**
-         * Initial commit SHA
-         */
-        private String commitSha;
-
-        /**
-         * Branch name
-         */
-        private String branchName;
-
-        /**
-         * Whether push was successful
-         */
-        private boolean pushSuccessful;
-
-        // Constructors
-        public GitHubRepositoryInfo() {
-        }
-
-        public GitHubRepositoryInfo(String repositoryUrl, String cloneUrl, String sshUrl,
-                                     String fullName, String commitSha, String branchName,
-                                     boolean pushSuccessful) {
-            this.repositoryUrl = repositoryUrl;
-            this.cloneUrl = cloneUrl;
-            this.sshUrl = sshUrl;
-            this.fullName = fullName;
-            this.commitSha = commitSha;
-            this.branchName = branchName;
-            this.pushSuccessful = pushSuccessful;
-        }
-
-        // Builder pattern (simplified)
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static class Builder {
-            private String repositoryUrl;
-            private String cloneUrl;
-            private String sshUrl;
-            private String fullName;
-            private String commitSha;
-            private String branchName;
-            private boolean pushSuccessful;
-
-            public Builder repositoryUrl(String repositoryUrl) {
-                this.repositoryUrl = repositoryUrl;
-                return this;
-            }
-
-            public Builder cloneUrl(String cloneUrl) {
-                this.cloneUrl = cloneUrl;
-                return this;
-            }
-
-            public Builder sshUrl(String sshUrl) {
-                this.sshUrl = sshUrl;
-                return this;
-            }
-
-            public Builder fullName(String fullName) {
-                this.fullName = fullName;
-                return this;
-            }
-
-            public Builder commitSha(String commitSha) {
-                this.commitSha = commitSha;
-                return this;
-            }
-
-            public Builder branchName(String branchName) {
-                this.branchName = branchName;
-                return this;
-            }
-
-            public Builder pushSuccessful(boolean pushSuccessful) {
-                this.pushSuccessful = pushSuccessful;
-                return this;
-            }
-
-            public GitHubRepositoryInfo build() {
-                return new GitHubRepositoryInfo(repositoryUrl, cloneUrl, sshUrl, fullName,
-                        commitSha, branchName, pushSuccessful);
-            }
-        }
-
-        // Getters and Setters
-        public String getRepositoryUrl() {
-            return repositoryUrl;
-        }
-
-        public void setRepositoryUrl(String repositoryUrl) {
-            this.repositoryUrl = repositoryUrl;
-        }
-
-        public String getCloneUrl() {
-            return cloneUrl;
-        }
-
-        public void setCloneUrl(String cloneUrl) {
-            this.cloneUrl = cloneUrl;
-        }
-
-        public String getSshUrl() {
-            return sshUrl;
-        }
-
-        public void setSshUrl(String sshUrl) {
-            this.sshUrl = sshUrl;
-        }
-
-        public String getFullName() {
-            return fullName;
-        }
-
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
-        }
-
-        public String getCommitSha() {
-            return commitSha;
-        }
-
-        public void setCommitSha(String commitSha) {
-            this.commitSha = commitSha;
-        }
-
-        public String getBranchName() {
-            return branchName;
-        }
-
-        public void setBranchName(String branchName) {
-            this.branchName = branchName;
-        }
-
-        public boolean isPushSuccessful() {
-            return pushSuccessful;
-        }
-
-        public void setPushSuccessful(boolean pushSuccessful) {
-            this.pushSuccessful = pushSuccessful;
-        }
     }
 }
