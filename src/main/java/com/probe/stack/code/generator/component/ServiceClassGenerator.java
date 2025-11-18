@@ -294,7 +294,7 @@ public class ServiceClassGenerator {
                 break;
             case UPDATE:
                 generateUpdateImplementation(methodBuilder, method, entityClass, repositoryFieldName,
-                        isResponseEntity, entityClassName);
+                        isResponseEntity, isVoid, entityClassName);
                 break;
             case DELETE:
                 generateDeleteImplementation(methodBuilder, method, entityClass, repositoryFieldName,
@@ -376,6 +376,7 @@ public class ServiceClassGenerator {
             String entityClass,
             String repositoryFieldName,
             boolean isResponseEntity,
+            boolean isVoid,
             ClassName entityClassName
     ) {
         String entityParamName = findEntityParameter(method, entityClass);
@@ -400,8 +401,9 @@ public class ServiceClassGenerator {
                     entityClass, entityClass, repositoryFieldName, entityParamName);
 
             String returnTypeGeneric = extractGenericFromReturnType(method.getReturnType());
+            boolean isVoidResponse = returnTypeGeneric.equals("Void") || returnTypeGeneric.isEmpty() || isVoid;
             boolean needsMapping = !returnTypeGeneric.equals(entityClass) &&
-                    !returnTypeGeneric.equals("Void") &&
+                    !isVoidResponse &&
                     !returnTypeGeneric.isEmpty();
 
             if (needsMapping) {
@@ -418,7 +420,15 @@ public class ServiceClassGenerator {
                 } else {
                     methodBuilder.addStatement("return response");
                 }
+            } else if (isVoidResponse) {
+                // Handle void or ResponseEntity<Void> return types
+                if (isResponseEntity) {
+                    methodBuilder.addStatement("return $T.ok().build()",
+                            ClassName.get("org.springframework.http", "ResponseEntity"));
+                }
+                // else: void return type, no return statement needed
             } else {
+                // No mapping needed, return entity directly
                 if (isResponseEntity) {
                     methodBuilder.addStatement("return $T.ok(updated$L)",
                             ClassName.get("org.springframework.http", "ResponseEntity"),
