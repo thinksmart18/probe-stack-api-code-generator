@@ -454,6 +454,9 @@ public class ExistingControllerEnhancer {
         MethodCallExpr serviceCall = buildServiceMethodCallExpression(methodMeta, serviceFieldName);
 
         // Add service call in try block
+        boolean isVoidReturnType = methodMeta.getReturnType().equals("void") ||
+                                    methodMeta.getReturnType().equals("Void");
+
         if (methodMeta.getReturnType().contains("ResponseEntity")) {
             // Create variable declaration: var response = service.method(...)
             VariableDeclarator responseVar = new VariableDeclarator(
@@ -495,6 +498,17 @@ public class ExistingControllerEnhancer {
                 // return response;
                 tryBlock.addStatement(new com.github.javaparser.ast.stmt.ReturnStmt(new NameExpr("response")));
             }
+        } else if (isVoidReturnType) {
+            // For void return type, just call service method without returning
+            tryBlock.addStatement(new ExpressionStmt(serviceCall));
+
+            // Add success log
+            MethodCallExpr successLog = new MethodCallExpr(
+                    new NameExpr("log"),
+                    "info",
+                    new NodeList<>(new StringLiteralExpr(methodMeta.getMethodName() + " completed successfully"))
+            );
+            tryBlock.addStatement(new ExpressionStmt(successLog));
         } else {
             // return service.method(...);
             tryBlock.addStatement(new com.github.javaparser.ast.stmt.ReturnStmt(serviceCall));
